@@ -27,6 +27,8 @@ def _aws_table(header, sep, rows):
   join([header, sep] + rows, "\n")
 end
 
+|
+
 module ec2:
   # Extract all instances from a DescribeInstances response.
   def instances(response):
@@ -76,14 +78,14 @@ module ec2:
           let header = "| InstanceId | Name | Type | State | PrivateIP | PublicIP | AZ |"
           | let sep = "| --- | --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(i):
-                "| " + _aws_to_cell(i["InstanceId"]) +
-                " | " + _aws_tag_value(i["Tags"], "Name") +
-                " | " + _aws_to_cell(i["InstanceType"]) +
-                " | " + (if (is_none(i["State"])): "" else: _aws_to_cell(i["State"]["Name"])) +
-                " | " + _aws_to_cell(i["PrivateIpAddress"]) +
-                " | " + _aws_to_cell(i["PublicIpAddress"]) +
-                " | " + (if (is_none(i["Placement"])): "" else: _aws_to_cell(i["Placement"]["AvailabilityZone"])) + " |"
-              end)
+                      "| " + _aws_to_cell(i["InstanceId"]) +
+                        " | " + _aws_tag_value(i["Tags"], "Name") +
+                        " | " + _aws_to_cell(i["InstanceType"]) +
+                        " | " + (if (is_none(i["State"])): "" else: _aws_to_cell(i["State"]["Name"])) +
+                        " | " + _aws_to_cell(i["PrivateIpAddress"]) +
+                        " | " + _aws_to_cell(i["PublicIpAddress"]) +
+                        " | " + (if (is_none(i["Placement"])): "" else: _aws_to_cell(i["Placement"]["AvailabilityZone"])) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -108,11 +110,11 @@ module ec2:
           let header = "| GroupId | GroupName | Description | VpcId |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(sg):
-                "| " + _aws_to_cell(sg["GroupId"]) +
-                " | " + _aws_to_cell(sg["GroupName"]) +
-                " | " + _aws_to_cell(sg["Description"]) +
-                " | " + _aws_to_cell(sg["VpcId"]) + " |"
-              end)
+                      "| " + _aws_to_cell(sg["GroupId"]) +
+                        " | " + _aws_to_cell(sg["GroupName"]) +
+                        " | " + _aws_to_cell(sg["Description"]) +
+                        " | " + _aws_to_cell(sg["VpcId"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -137,12 +139,12 @@ module ec2:
           let header = "| VpcId | CidrBlock | IsDefault | State | Name |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(v):
-                "| " + _aws_to_cell(v["VpcId"]) +
-                " | " + _aws_to_cell(v["CidrBlock"]) +
-                " | " + _aws_to_cell(v["IsDefault"]) +
-                " | " + _aws_to_cell(v["State"]) +
-                " | " + _aws_tag_value(v["Tags"], "Name") + " |"
-              end)
+                      "| " + _aws_to_cell(v["VpcId"]) +
+                        " | " + _aws_to_cell(v["CidrBlock"]) +
+                        " | " + _aws_to_cell(v["IsDefault"]) +
+                        " | " + _aws_to_cell(v["State"]) +
+                        " | " + _aws_tag_value(v["Tags"], "Name") + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -167,17 +169,19 @@ module ec2:
           let header = "| SubnetId | VpcId | CidrBlock | AZ | AvailableIPs | Name |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                "| " + _aws_to_cell(s["SubnetId"]) +
-                " | " + _aws_to_cell(s["VpcId"]) +
-                " | " + _aws_to_cell(s["CidrBlock"]) +
-                " | " + _aws_to_cell(s["AvailabilityZone"]) +
-                " | " + _aws_to_cell(s["AvailableIpAddressCount"]) +
-                " | " + _aws_tag_value(s["Tags"], "Name") + " |"
-              end)
+                      "| " + _aws_to_cell(s["SubnetId"]) +
+                        " | " + _aws_to_cell(s["VpcId"]) +
+                        " | " + _aws_to_cell(s["CidrBlock"]) +
+                        " | " + _aws_to_cell(s["AvailabilityZone"]) +
+                        " | " + _aws_to_cell(s["AvailableIpAddressCount"]) +
+                        " | " + _aws_tag_value(s["Tags"], "Name") + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module s3:
   # Extract buckets from a ListBuckets response.
@@ -200,9 +204,9 @@ module s3:
           let header = "| Name | CreationDate |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(b):
-                "| " + _aws_to_cell(b["Name"]) +
-                " | " + _aws_to_cell(b["CreationDate"]) + " |"
-              end)
+                      "| " + _aws_to_cell(b["Name"]) +
+                        " | " + _aws_to_cell(b["CreationDate"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -237,15 +241,17 @@ module s3:
           let header = "| Key | Size | LastModified | StorageClass |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(o):
-                "| " + _aws_to_cell(o["Key"]) +
-                " | " + _aws_to_cell(o["Size"]) +
-                " | " + _aws_to_cell(o["LastModified"]) +
-                " | " + _aws_to_cell(o["StorageClass"]) + " |"
-              end)
+                      "| " + _aws_to_cell(o["Key"]) +
+                        " | " + _aws_to_cell(o["Size"]) +
+                        " | " + _aws_to_cell(o["LastModified"]) +
+                        " | " + _aws_to_cell(o["StorageClass"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module iam:
   # Extract users from a ListUsers response.
@@ -268,11 +274,11 @@ module iam:
           let header = "| UserName | UserId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(u):
-                "| " + _aws_to_cell(u["UserName"]) +
-                " | " + _aws_to_cell(u["UserId"]) +
-                " | " + _aws_to_cell(u["Arn"]) +
-                " | " + _aws_to_cell(u["CreateDate"]) + " |"
-              end)
+                      "| " + _aws_to_cell(u["UserName"]) +
+                        " | " + _aws_to_cell(u["UserId"]) +
+                        " | " + _aws_to_cell(u["Arn"]) +
+                        " | " + _aws_to_cell(u["CreateDate"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -297,11 +303,11 @@ module iam:
           let header = "| RoleName | RoleId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
-                "| " + _aws_to_cell(r["RoleName"]) +
-                " | " + _aws_to_cell(r["RoleId"]) +
-                " | " + _aws_to_cell(r["Arn"]) +
-                " | " + _aws_to_cell(r["CreateDate"]) + " |"
-              end)
+                      "| " + _aws_to_cell(r["RoleName"]) +
+                        " | " + _aws_to_cell(r["RoleId"]) +
+                        " | " + _aws_to_cell(r["Arn"]) +
+                        " | " + _aws_to_cell(r["CreateDate"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -326,15 +332,17 @@ module iam:
           let header = "| PolicyName | PolicyId | Arn | AttachmentCount |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                "| " + _aws_to_cell(p["PolicyName"]) +
-                " | " + _aws_to_cell(p["PolicyId"]) +
-                " | " + _aws_to_cell(p["Arn"]) +
-                " | " + _aws_to_cell(p["AttachmentCount"]) + " |"
-              end)
+                      "| " + _aws_to_cell(p["PolicyName"]) +
+                        " | " + _aws_to_cell(p["PolicyId"]) +
+                        " | " + _aws_to_cell(p["Arn"]) +
+                        " | " + _aws_to_cell(p["AttachmentCount"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module lambda:
   # Extract functions from a ListFunctions response.
@@ -372,17 +380,19 @@ module lambda:
           let header = "| FunctionName | Runtime | Handler | MemorySize | Timeout | State |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(f):
-                "| " + _aws_to_cell(f["FunctionName"]) +
-                " | " + _aws_to_cell(f["Runtime"]) +
-                " | " + _aws_to_cell(f["Handler"]) +
-                " | " + _aws_to_cell(f["MemorySize"]) +
-                " | " + _aws_to_cell(f["Timeout"]) +
-                " | " + _aws_to_cell(f["State"]) + " |"
-              end)
+                      "| " + _aws_to_cell(f["FunctionName"]) +
+                        " | " + _aws_to_cell(f["Runtime"]) +
+                        " | " + _aws_to_cell(f["Handler"]) +
+                        " | " + _aws_to_cell(f["MemorySize"]) +
+                        " | " + _aws_to_cell(f["Timeout"]) +
+                        " | " + _aws_to_cell(f["State"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module rds:
   # Extract DB instances from a DescribeDBInstances response.
@@ -415,17 +425,19 @@ module rds:
           let header = "| DBInstanceIdentifier | DBInstanceClass | Engine | EngineVersion | Status | MultiAZ |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(i):
-                "| " + _aws_to_cell(i["DBInstanceIdentifier"]) +
-                " | " + _aws_to_cell(i["DBInstanceClass"]) +
-                " | " + _aws_to_cell(i["Engine"]) +
-                " | " + _aws_to_cell(i["EngineVersion"]) +
-                " | " + _aws_to_cell(i["DBInstanceStatus"]) +
-                " | " + _aws_to_cell(i["MultiAZ"]) + " |"
-              end)
+                      "| " + _aws_to_cell(i["DBInstanceIdentifier"]) +
+                        " | " + _aws_to_cell(i["DBInstanceClass"]) +
+                        " | " + _aws_to_cell(i["Engine"]) +
+                        " | " + _aws_to_cell(i["EngineVersion"]) +
+                        " | " + _aws_to_cell(i["DBInstanceStatus"]) +
+                        " | " + _aws_to_cell(i["MultiAZ"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module cloudformation:
   # Extract stacks from a DescribeStacks response.
@@ -477,14 +489,16 @@ module cloudformation:
           let header = "| StackName | StackStatus | CreationTime |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(s):
-                "| " + _aws_to_cell(s["StackName"]) +
-                " | " + _aws_to_cell(s["StackStatus"]) +
-                " | " + _aws_to_cell(s["CreationTime"]) + " |"
-              end)
+                      "| " + _aws_to_cell(s["StackName"]) +
+                        " | " + _aws_to_cell(s["StackStatus"]) +
+                        " | " + _aws_to_cell(s["CreationTime"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module sqs:
   # Extract queue URLs from a ListQueues response.
@@ -512,9 +526,9 @@ module sqs:
           let header = "| QueueName | QueueUrl |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(url):
-                "| " + fold(split(url, "/"), "", fn(_, p): p;) +
-                " | " + url + " |"
-              end)
+                      "| " + fold(split(url, "/"), "", fn(_, p): p;) +
+                        " | " + url + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -534,6 +548,8 @@ module sqs:
     attribute(response, "ApproximateNumberOfMessagesNotVisible")
   end
 end
+
+|
 
 module sns:
   # Extract topics from a ListTopics response.
@@ -585,14 +601,16 @@ module sns:
           let header = "| Protocol | Endpoint | TopicArn |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(s):
-                "| " + _aws_to_cell(s["Protocol"]) +
-                " | " + _aws_to_cell(s["Endpoint"]) +
-                " | " + _aws_to_cell(s["TopicArn"]) + " |"
-              end)
+                      "| " + _aws_to_cell(s["Protocol"]) +
+                        " | " + _aws_to_cell(s["Endpoint"]) +
+                        " | " + _aws_to_cell(s["TopicArn"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module ecs:
   # Extract clusters from a DescribeClusters response (ECS uses lowercase keys).
@@ -620,12 +638,12 @@ module ecs:
           let header = "| ClusterName | Status | Instances | RunningTasks | ActiveServices |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                "| " + _aws_to_cell(c["clusterName"]) +
-                " | " + _aws_to_cell(c["status"]) +
-                " | " + _aws_to_cell(c["registeredContainerInstancesCount"]) +
-                " | " + _aws_to_cell(c["runningTasksCount"]) +
-                " | " + _aws_to_cell(c["activeServicesCount"]) + " |"
-              end)
+                      "| " + _aws_to_cell(c["clusterName"]) +
+                        " | " + _aws_to_cell(c["status"]) +
+                        " | " + _aws_to_cell(c["registeredContainerInstancesCount"]) +
+                        " | " + _aws_to_cell(c["runningTasksCount"]) +
+                        " | " + _aws_to_cell(c["activeServicesCount"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -650,12 +668,12 @@ module ecs:
           let header = "| ServiceName | Status | Desired | Running | Pending |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                "| " + _aws_to_cell(s["serviceName"]) +
-                " | " + _aws_to_cell(s["status"]) +
-                " | " + _aws_to_cell(s["desiredCount"]) +
-                " | " + _aws_to_cell(s["runningCount"]) +
-                " | " + _aws_to_cell(s["pendingCount"]) + " |"
-              end)
+                      "| " + _aws_to_cell(s["serviceName"]) +
+                        " | " + _aws_to_cell(s["status"]) +
+                        " | " + _aws_to_cell(s["desiredCount"]) +
+                        " | " + _aws_to_cell(s["runningCount"]) +
+                        " | " + _aws_to_cell(s["pendingCount"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -680,16 +698,18 @@ module ecs:
           let header = "| TaskArn | LastStatus | DesiredStatus | Cpu | Memory |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(t):
-                "| " + _aws_to_cell(t["taskArn"]) +
-                " | " + _aws_to_cell(t["lastStatus"]) +
-                " | " + _aws_to_cell(t["desiredStatus"]) +
-                " | " + _aws_to_cell(t["cpu"]) +
-                " | " + _aws_to_cell(t["memory"]) + " |"
-              end)
+                      "| " + _aws_to_cell(t["taskArn"]) +
+                        " | " + _aws_to_cell(t["lastStatus"]) +
+                        " | " + _aws_to_cell(t["desiredStatus"]) +
+                        " | " + _aws_to_cell(t["cpu"]) +
+                        " | " + _aws_to_cell(t["memory"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module dynamodb:
   # Extract table names from a ListTables response.
@@ -741,13 +761,15 @@ module dynamodb:
           let header = "| TableName | TableStatus | ItemCount | TableSizeBytes |"
           | let sep = "| --- | --- | --- | --- |"
           | let row = "| " + _aws_to_cell(t["TableName"]) +
-                      " | " + _aws_to_cell(t["TableStatus"]) +
-                      " | " + _aws_to_cell(t["ItemCount"]) +
-                      " | " + _aws_to_cell(t["TableSizeBytes"]) + " |"
+            " | " + _aws_to_cell(t["TableStatus"]) +
+            " | " + _aws_to_cell(t["ItemCount"]) +
+            " | " + _aws_to_cell(t["TableSizeBytes"]) + " |"
           | _aws_table(header, sep, [row])
         end
   end
 end
+
+|
 
 module cloudwatch:
   # Extract metric alarms from a DescribeAlarms response.
@@ -790,16 +812,18 @@ module cloudwatch:
           let header = "| AlarmName | State | Namespace | MetricName | Threshold |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                "| " + _aws_to_cell(a["AlarmName"]) +
-                " | " + _aws_to_cell(a["StateValue"]) +
-                " | " + _aws_to_cell(a["Namespace"]) +
-                " | " + _aws_to_cell(a["MetricName"]) +
-                " | " + _aws_to_cell(a["Threshold"]) + " |"
-              end)
+                      "| " + _aws_to_cell(a["AlarmName"]) +
+                        " | " + _aws_to_cell(a["StateValue"]) +
+                        " | " + _aws_to_cell(a["Namespace"]) +
+                        " | " + _aws_to_cell(a["MetricName"]) +
+                        " | " + _aws_to_cell(a["Threshold"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module ssm:
   # Extract parameters from a DescribeParameters or GetParametersByPath response.
@@ -832,14 +856,16 @@ module ssm:
           let header = "| Name | Type | LastModifiedDate |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(p):
-                "| " + _aws_to_cell(p["Name"]) +
-                " | " + _aws_to_cell(p["Type"]) +
-                " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
-              end)
+                      "| " + _aws_to_cell(p["Name"]) +
+                        " | " + _aws_to_cell(p["Type"]) +
+                        " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module secretsmanager:
   # Extract secrets from a ListSecrets response.
@@ -862,15 +888,17 @@ module secretsmanager:
           let header = "| Name | ARN | Description | LastChangedDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                "| " + _aws_to_cell(s["Name"]) +
-                " | " + _aws_to_cell(s["ARN"]) +
-                " | " + _aws_to_cell(s["Description"]) +
-                " | " + _aws_to_cell(s["LastChangedDate"]) + " |"
-              end)
+                      "| " + _aws_to_cell(s["Name"]) +
+                        " | " + _aws_to_cell(s["ARN"]) +
+                        " | " + _aws_to_cell(s["Description"]) +
+                        " | " + _aws_to_cell(s["LastChangedDate"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module elbv2:
   # Extract load balancers from a DescribeLoadBalancers response.
@@ -905,12 +933,12 @@ module elbv2:
           let header = "| Name | Type | Scheme | State | DNSName |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(lb):
-                "| " + _aws_to_cell(lb["LoadBalancerName"]) +
-                " | " + _aws_to_cell(lb["Type"]) +
-                " | " + _aws_to_cell(lb["Scheme"]) +
-                " | " + (if (is_none(lb["State"])): "" else: _aws_to_cell(lb["State"]["Code"])) +
-                " | " + _aws_to_cell(lb["DNSName"]) + " |"
-              end)
+                      "| " + _aws_to_cell(lb["LoadBalancerName"]) +
+                        " | " + _aws_to_cell(lb["Type"]) +
+                        " | " + _aws_to_cell(lb["Scheme"]) +
+                        " | " + (if (is_none(lb["State"])): "" else: _aws_to_cell(lb["State"]["Code"])) +
+                        " | " + _aws_to_cell(lb["DNSName"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -935,15 +963,17 @@ module elbv2:
           let header = "| TargetGroupName | Protocol | Port | TargetType |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(tg):
-                "| " + _aws_to_cell(tg["TargetGroupName"]) +
-                " | " + _aws_to_cell(tg["Protocol"]) +
-                " | " + _aws_to_cell(tg["Port"]) +
-                " | " + _aws_to_cell(tg["TargetType"]) + " |"
-              end)
+                      "| " + _aws_to_cell(tg["TargetGroupName"]) +
+                        " | " + _aws_to_cell(tg["Protocol"]) +
+                        " | " + _aws_to_cell(tg["Port"]) +
+                        " | " + _aws_to_cell(tg["TargetType"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
 end
+
+|
 
 module route53:
   # Extract hosted zones from a ListHostedZones response.
@@ -980,11 +1010,11 @@ module route53:
           let header = "| Name | Id | Private | RecordSets |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(z):
-                "| " + _aws_to_cell(z["Name"]) +
-                " | " + _aws_to_cell(z["Id"]) +
-                " | " + (if (is_none(z["Config"])): "" else: _aws_to_cell(z["Config"]["PrivateZone"])) +
-                " | " + _aws_to_cell(z["ResourceRecordSetCount"]) + " |"
-              end)
+                      "| " + _aws_to_cell(z["Name"]) +
+                        " | " + _aws_to_cell(z["Id"]) +
+                        " | " + (if (is_none(z["Config"])): "" else: _aws_to_cell(z["Config"]["PrivateZone"])) +
+                        " | " + _aws_to_cell(z["ResourceRecordSetCount"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1009,10 +1039,10 @@ module route53:
           let header = "| Name | Type | TTL |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(r):
-                "| " + _aws_to_cell(r["Name"]) +
-                " | " + _aws_to_cell(r["Type"]) +
-                " | " + _aws_to_cell(r["TTL"]) + " |"
-              end)
+                      "| " + _aws_to_cell(r["Name"]) +
+                        " | " + _aws_to_cell(r["Type"]) +
+                        " | " + _aws_to_cell(r["TTL"]) + " |"
+                    end)
           | _aws_table(header, sep, rows)
         end
   end
