@@ -485,3 +485,535 @@ module cloudformation:
         end
   end
 end
+
+module sqs:
+  # Extract queue URLs from a ListQueues response.
+  def queue_urls(response):
+    if (is_none(response["QueueUrls"])): [] else: response["QueueUrls"]
+  end
+
+  # Extract queue names from queue URLs (last path segment).
+  def queue_names(response):
+    map(queue_urls(response), fn(url): fold(split(url, "/"), "", fn(_, p): p;);)
+  end
+
+  # Get the total number of queues.
+  def queue_count(response):
+    len(queue_urls(response))
+  end
+
+  # Convert a ListQueues response to a Markdown table.
+  def queue_urls_to_markdown_table(response):
+    let data = queue_urls(response)
+    | if (is_empty(data)):
+        "No queues found."
+      else:
+        do
+          let header = "| QueueName | QueueUrl |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(url):
+                "| " + fold(split(url, "/"), "", fn(_, p): p;) +
+                " | " + url + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Get an attribute value from a GetQueueAttributes response.
+  def attribute(response, name):
+    if (is_none(response["Attributes"])): None else: response["Attributes"][name]
+  end
+
+  # Get the approximate number of visible messages (returned as string by AWS).
+  def message_count(response):
+    attribute(response, "ApproximateNumberOfMessages")
+  end
+
+  # Get the approximate number of in-flight (invisible) messages.
+  def in_flight_count(response):
+    attribute(response, "ApproximateNumberOfMessagesNotVisible")
+  end
+end
+
+module sns:
+  # Extract topics from a ListTopics response.
+  def topics(response):
+    if (is_none(response["Topics"])): [] else: response["Topics"]
+  end
+
+  # Get all topic ARNs from a ListTopics response.
+  def topic_arns(response):
+    map(topics(response), fn(t): t["TopicArn"];)
+  end
+
+  # Convert a ListTopics response to a Markdown table.
+  def topics_to_markdown_table(response):
+    let data = topics(response)
+    | if (is_empty(data)):
+        "No topics found."
+      else:
+        do
+          let header = "| TopicArn |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(t): "| " + _aws_to_cell(t["TopicArn"]) + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract subscriptions from a ListSubscriptions response.
+  def subscriptions(response):
+    if (is_none(response["Subscriptions"])): [] else: response["Subscriptions"]
+  end
+
+  # Filter subscriptions by protocol (e.g. "email", "sqs", "lambda", "https").
+  def subscriptions_by_protocol(response, protocol):
+    filter(subscriptions(response), fn(s): s["Protocol"] == protocol;)
+  end
+
+  # Filter subscriptions by topic ARN.
+  def subscriptions_by_topic(response, topic_arn):
+    filter(subscriptions(response), fn(s): s["TopicArn"] == topic_arn;)
+  end
+
+  # Convert a ListSubscriptions response to a Markdown table.
+  def subscriptions_to_markdown_table(response):
+    let data = subscriptions(response)
+    | if (is_empty(data)):
+        "No subscriptions found."
+      else:
+        do
+          let header = "| Protocol | Endpoint | TopicArn |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(s):
+                "| " + _aws_to_cell(s["Protocol"]) +
+                " | " + _aws_to_cell(s["Endpoint"]) +
+                " | " + _aws_to_cell(s["TopicArn"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module ecs:
+  # Extract clusters from a DescribeClusters response (ECS uses lowercase keys).
+  def clusters(response):
+    if (is_none(response["clusters"])): [] else: response["clusters"]
+  end
+
+  # Get all cluster names.
+  def cluster_names(response):
+    map(clusters(response), fn(c): c["clusterName"];)
+  end
+
+  # Filter clusters with ACTIVE status.
+  def active_clusters(response):
+    filter(clusters(response), fn(c): c["status"] == "ACTIVE";)
+  end
+
+  # Convert a DescribeClusters response to a Markdown table.
+  def clusters_to_markdown_table(response):
+    let data = clusters(response)
+    | if (is_empty(data)):
+        "No clusters found."
+      else:
+        do
+          let header = "| ClusterName | Status | Instances | RunningTasks | ActiveServices |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                "| " + _aws_to_cell(c["clusterName"]) +
+                " | " + _aws_to_cell(c["status"]) +
+                " | " + _aws_to_cell(c["registeredContainerInstancesCount"]) +
+                " | " + _aws_to_cell(c["runningTasksCount"]) +
+                " | " + _aws_to_cell(c["activeServicesCount"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract services from a DescribeServices response.
+  def services(response):
+    if (is_none(response["services"])): [] else: response["services"]
+  end
+
+  # Filter services with ACTIVE status.
+  def running_services(response):
+    filter(services(response), fn(s): s["status"] == "ACTIVE";)
+  end
+
+  # Convert a DescribeServices response to a Markdown table.
+  def services_to_markdown_table(response):
+    let data = services(response)
+    | if (is_empty(data)):
+        "No services found."
+      else:
+        do
+          let header = "| ServiceName | Status | Desired | Running | Pending |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(s):
+                "| " + _aws_to_cell(s["serviceName"]) +
+                " | " + _aws_to_cell(s["status"]) +
+                " | " + _aws_to_cell(s["desiredCount"]) +
+                " | " + _aws_to_cell(s["runningCount"]) +
+                " | " + _aws_to_cell(s["pendingCount"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract tasks from a DescribeTasks response.
+  def tasks(response):
+    if (is_none(response["tasks"])): [] else: response["tasks"]
+  end
+
+  # Filter tasks with RUNNING status.
+  def running_tasks(response):
+    filter(tasks(response), fn(t): t["lastStatus"] == "RUNNING";)
+  end
+
+  # Convert a DescribeTasks response to a Markdown table.
+  def tasks_to_markdown_table(response):
+    let data = tasks(response)
+    | if (is_empty(data)):
+        "No tasks found."
+      else:
+        do
+          let header = "| TaskArn | LastStatus | DesiredStatus | Cpu | Memory |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(t):
+                "| " + _aws_to_cell(t["taskArn"]) +
+                " | " + _aws_to_cell(t["lastStatus"]) +
+                " | " + _aws_to_cell(t["desiredStatus"]) +
+                " | " + _aws_to_cell(t["cpu"]) +
+                " | " + _aws_to_cell(t["memory"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module dynamodb:
+  # Extract table names from a ListTables response.
+  def table_names(response):
+    if (is_none(response["TableNames"])): [] else: response["TableNames"]
+  end
+
+  # Get the number of tables.
+  def table_count(response):
+    len(table_names(response))
+  end
+
+  # Convert a ListTables response to a Markdown table.
+  def table_names_to_markdown_table(response):
+    let data = table_names(response)
+    | if (is_empty(data)):
+        "No tables found."
+      else:
+        do
+          let header = "| TableName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract the Table object from a DescribeTable response.
+  def table(response):
+    response["Table"]
+  end
+
+  # Get the table status from a DescribeTable response.
+  def table_status(response):
+    if (is_none(table(response))): None else: table(response)["TableStatus"]
+  end
+
+  # Get the item count from a DescribeTable response.
+  def item_count(response):
+    if (is_none(table(response))): 0 else: table(response)["ItemCount"]
+  end
+
+  # Convert a DescribeTable response to a Markdown table.
+  def table_info_to_markdown_table(response):
+    let t = table(response)
+    | if (is_none(t)):
+        "No table found."
+      else:
+        do
+          let header = "| TableName | TableStatus | ItemCount | TableSizeBytes |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let row = "| " + _aws_to_cell(t["TableName"]) +
+                      " | " + _aws_to_cell(t["TableStatus"]) +
+                      " | " + _aws_to_cell(t["ItemCount"]) +
+                      " | " + _aws_to_cell(t["TableSizeBytes"]) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
+end
+
+module cloudwatch:
+  # Extract metric alarms from a DescribeAlarms response.
+  def alarms(response):
+    if (is_none(response["MetricAlarms"])): [] else: response["MetricAlarms"]
+  end
+
+  # Filter alarms by state ("OK", "ALARM", "INSUFFICIENT_DATA").
+  def alarms_in_state(response, state):
+    filter(alarms(response), fn(a): a["StateValue"] == state;)
+  end
+
+  # Return alarms in the OK state.
+  def ok_alarms(response):
+    alarms_in_state(response, "OK")
+  end
+
+  # Return alarms in the ALARM state.
+  def alarm_alarms(response):
+    alarms_in_state(response, "ALARM")
+  end
+
+  # Return alarms in the INSUFFICIENT_DATA state.
+  def insufficient_data_alarms(response):
+    alarms_in_state(response, "INSUFFICIENT_DATA")
+  end
+
+  # Get all alarm names.
+  def alarm_names(response):
+    map(alarms(response), fn(a): a["AlarmName"];)
+  end
+
+  # Convert a DescribeAlarms response to a Markdown table.
+  def alarms_to_markdown_table(response):
+    let data = alarms(response)
+    | if (is_empty(data)):
+        "No alarms found."
+      else:
+        do
+          let header = "| AlarmName | State | Namespace | MetricName | Threshold |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                "| " + _aws_to_cell(a["AlarmName"]) +
+                " | " + _aws_to_cell(a["StateValue"]) +
+                " | " + _aws_to_cell(a["Namespace"]) +
+                " | " + _aws_to_cell(a["MetricName"]) +
+                " | " + _aws_to_cell(a["Threshold"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module ssm:
+  # Extract parameters from a DescribeParameters or GetParametersByPath response.
+  def parameters(response):
+    if (is_none(response["Parameters"])): [] else: response["Parameters"]
+  end
+
+  # Get all parameter names.
+  def parameter_names(response):
+    map(parameters(response), fn(p): p["Name"];)
+  end
+
+  # Filter parameters by type ("String", "SecureString", "StringList").
+  def by_type(response, type):
+    filter(parameters(response), fn(p): p["Type"] == type;)
+  end
+
+  # Get parameter values (only present in GetParametersByPath responses).
+  def parameter_values(response):
+    map(parameters(response), fn(p): p["Value"];)
+  end
+
+  # Convert a parameter response to a Markdown table.
+  def parameters_to_markdown_table(response):
+    let data = parameters(response)
+    | if (is_empty(data)):
+        "No parameters found."
+      else:
+        do
+          let header = "| Name | Type | LastModifiedDate |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                "| " + _aws_to_cell(p["Name"]) +
+                " | " + _aws_to_cell(p["Type"]) +
+                " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module secretsmanager:
+  # Extract secrets from a ListSecrets response.
+  def secrets(response):
+    if (is_none(response["SecretList"])): [] else: response["SecretList"]
+  end
+
+  # Get all secret names.
+  def secret_names(response):
+    map(secrets(response), fn(s): s["Name"];)
+  end
+
+  # Convert a ListSecrets response to a Markdown table.
+  def secrets_to_markdown_table(response):
+    let data = secrets(response)
+    | if (is_empty(data)):
+        "No secrets found."
+      else:
+        do
+          let header = "| Name | ARN | Description | LastChangedDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(s):
+                "| " + _aws_to_cell(s["Name"]) +
+                " | " + _aws_to_cell(s["ARN"]) +
+                " | " + _aws_to_cell(s["Description"]) +
+                " | " + _aws_to_cell(s["LastChangedDate"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module elbv2:
+  # Extract load balancers from a DescribeLoadBalancers response.
+  def load_balancers(response):
+    if (is_none(response["LoadBalancers"])): [] else: response["LoadBalancers"]
+  end
+
+  # Filter load balancers with state code "active".
+  def active_load_balancers(response):
+    filter(load_balancers(response), fn(lb):
+      !is_none(lb["State"]) && lb["State"]["Code"] == "active";
+    )
+  end
+
+  # Filter load balancers by type ("application", "network", "gateway").
+  def by_type(response, type):
+    filter(load_balancers(response), fn(lb): lb["Type"] == type;)
+  end
+
+  # Get all load balancer names.
+  def load_balancer_names(response):
+    map(load_balancers(response), fn(lb): lb["LoadBalancerName"];)
+  end
+
+  # Convert a DescribeLoadBalancers response to a Markdown table.
+  def load_balancers_to_markdown_table(response):
+    let data = load_balancers(response)
+    | if (is_empty(data)):
+        "No load balancers found."
+      else:
+        do
+          let header = "| Name | Type | Scheme | State | DNSName |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(lb):
+                "| " + _aws_to_cell(lb["LoadBalancerName"]) +
+                " | " + _aws_to_cell(lb["Type"]) +
+                " | " + _aws_to_cell(lb["Scheme"]) +
+                " | " + (if (is_none(lb["State"])): "" else: _aws_to_cell(lb["State"]["Code"])) +
+                " | " + _aws_to_cell(lb["DNSName"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract target groups from a DescribeTargetGroups response.
+  def target_groups(response):
+    if (is_none(response["TargetGroups"])): [] else: response["TargetGroups"]
+  end
+
+  # Get all target group names.
+  def target_group_names(response):
+    map(target_groups(response), fn(tg): tg["TargetGroupName"];)
+  end
+
+  # Convert a DescribeTargetGroups response to a Markdown table.
+  def target_groups_to_markdown_table(response):
+    let data = target_groups(response)
+    | if (is_empty(data)):
+        "No target groups found."
+      else:
+        do
+          let header = "| TargetGroupName | Protocol | Port | TargetType |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(tg):
+                "| " + _aws_to_cell(tg["TargetGroupName"]) +
+                " | " + _aws_to_cell(tg["Protocol"]) +
+                " | " + _aws_to_cell(tg["Port"]) +
+                " | " + _aws_to_cell(tg["TargetType"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+module route53:
+  # Extract hosted zones from a ListHostedZones response.
+  def hosted_zones(response):
+    if (is_none(response["HostedZones"])): [] else: response["HostedZones"]
+  end
+
+  # Get all hosted zone names.
+  def zone_names(response):
+    map(hosted_zones(response), fn(z): z["Name"];)
+  end
+
+  # Filter public hosted zones.
+  def public_zones(response):
+    filter(hosted_zones(response), fn(z):
+      !is_none(z["Config"]) && z["Config"]["PrivateZone"] == false;
+    )
+  end
+
+  # Filter private hosted zones.
+  def private_zones(response):
+    filter(hosted_zones(response), fn(z):
+      !is_none(z["Config"]) && z["Config"]["PrivateZone"] == true;
+    )
+  end
+
+  # Convert a ListHostedZones response to a Markdown table.
+  def hosted_zones_to_markdown_table(response):
+    let data = hosted_zones(response)
+    | if (is_empty(data)):
+        "No hosted zones found."
+      else:
+        do
+          let header = "| Name | Id | Private | RecordSets |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(z):
+                "| " + _aws_to_cell(z["Name"]) +
+                " | " + _aws_to_cell(z["Id"]) +
+                " | " + (if (is_none(z["Config"])): "" else: _aws_to_cell(z["Config"]["PrivateZone"])) +
+                " | " + _aws_to_cell(z["ResourceRecordSetCount"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract resource record sets from a ListResourceRecordSets response.
+  def record_sets(response):
+    if (is_none(response["ResourceRecordSets"])): [] else: response["ResourceRecordSets"]
+  end
+
+  # Filter record sets by DNS type (e.g. "A", "CNAME", "MX", "TXT").
+  def by_record_type(response, type):
+    filter(record_sets(response), fn(r): r["Type"] == type;)
+  end
+
+  # Convert a ListResourceRecordSets response to a Markdown table.
+  def record_sets_to_markdown_table(response):
+    let data = record_sets(response)
+    | if (is_empty(data)):
+        "No record sets found."
+      else:
+        do
+          let header = "| Name | Type | TTL |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(r):
+                "| " + _aws_to_cell(r["Name"]) +
+                " | " + _aws_to_cell(r["Type"]) +
+                " | " + _aws_to_cell(r["TTL"]) + " |"
+              end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
