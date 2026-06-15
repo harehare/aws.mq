@@ -1,6 +1,15 @@
+import "json"
+
+|
+
 # AWS API response processing module for mq
 # Provides helpers for processing AWS CLI / SDK JSON responses.
 # See https://docs.aws.amazon.com/cli/latest/reference/ for API response schemas.
+
+# Parse a raw JSON string into a value (shorthand for json::json_parse).
+def from_json(s):
+  json::json_parse(s)
+end
 
 # Extract a tag value by key from an AWS Tags array [{Key, Value}].
 def _aws_tag_value(tags, key):
@@ -179,6 +188,210 @@ module ec2:
           | _aws_table(header, sep, rows)
         end
   end
+
+  # Extract AMIs from a DescribeImages response.
+  def images(response):
+    if (is_none(response["Images"])): [] else: response["Images"]
+  end
+
+  # Filter available AMIs.
+  def available_images(response):
+    filter(images(response), fn(i): i["State"] == "available";)
+  end
+
+  # Filter AMIs by owner ID.
+  def images_by_owner(response, owner_id):
+    filter(images(response), fn(i): i["OwnerId"] == owner_id;)
+  end
+
+  # Convert a DescribeImages response to a Markdown table.
+  def images_to_markdown_table(response):
+    let data = images(response)
+    | if (is_empty(data)):
+        "No images found."
+      else:
+        do
+          let header = "| ImageId | Name | State | Architecture | OwnerId |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(i):
+                      "| " + _aws_to_cell(i["ImageId"]) +
+                        " | " + _aws_to_cell(i["Name"]) +
+                        " | " + _aws_to_cell(i["State"]) +
+                        " | " + _aws_to_cell(i["Architecture"]) +
+                        " | " + _aws_to_cell(i["OwnerId"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract Elastic IP addresses from a DescribeAddresses response.
+  def addresses(response):
+    if (is_none(response["Addresses"])): [] else: response["Addresses"]
+  end
+
+  # Filter unassociated Elastic IPs (not attached to any instance).
+  def unassociated_addresses(response):
+    filter(addresses(response), fn(a): is_none(a["AssociationId"]);)
+  end
+
+  # Convert a DescribeAddresses response to a Markdown table.
+  def addresses_to_markdown_table(response):
+    let data = addresses(response)
+    | if (is_empty(data)):
+        "No Elastic IPs found."
+      else:
+        do
+          let header = "| PublicIp | AllocationId | InstanceId | Domain |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                      "| " + _aws_to_cell(a["PublicIp"]) +
+                        " | " + _aws_to_cell(a["AllocationId"]) +
+                        " | " + _aws_to_cell(a["InstanceId"]) +
+                        " | " + _aws_to_cell(a["Domain"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract NAT Gateways from a DescribeNatGateways response.
+  def nat_gateways(response):
+    if (is_none(response["NatGateways"])): [] else: response["NatGateways"]
+  end
+
+  # Filter available NAT Gateways.
+  def available_nat_gateways(response):
+    filter(nat_gateways(response), fn(n): n["State"] == "available";)
+  end
+
+  # Filter NAT Gateways by VPC ID.
+  def nat_gateways_by_vpc(response, vpc_id):
+    filter(nat_gateways(response), fn(n): n["VpcId"] == vpc_id;)
+  end
+
+  # Convert a DescribeNatGateways response to a Markdown table.
+  def nat_gateways_to_markdown_table(response):
+    let data = nat_gateways(response)
+    | if (is_empty(data)):
+        "No NAT gateways found."
+      else:
+        do
+          let header = "| NatGatewayId | State | VpcId | SubnetId | PublicIp |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(n):
+                      let public_ip = if (is_none(n["NatGatewayAddresses"]) || is_empty(n["NatGatewayAddresses"])): "" else: _aws_to_cell(n["NatGatewayAddresses"][0]["PublicIp"])
+                      | "| " + _aws_to_cell(n["NatGatewayId"]) +
+                        " | " + _aws_to_cell(n["State"]) +
+                        " | " + _aws_to_cell(n["VpcId"]) +
+                        " | " + _aws_to_cell(n["SubnetId"]) +
+                        " | " + public_ip + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract route tables from a DescribeRouteTables response.
+  def route_tables(response):
+    if (is_none(response["RouteTables"])): [] else: response["RouteTables"]
+  end
+
+  # Filter route tables by VPC ID.
+  def route_tables_by_vpc(response, vpc_id):
+    filter(route_tables(response), fn(r): r["VpcId"] == vpc_id;)
+  end
+
+  # Convert a DescribeRouteTables response to a Markdown table.
+  def route_tables_to_markdown_table(response):
+    let data = route_tables(response)
+    | if (is_empty(data)):
+        "No route tables found."
+      else:
+        do
+          let header = "| RouteTableId | VpcId | Routes | Name |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(r):
+                      let route_count = if (is_none(r["Routes"])): 0 else: len(r["Routes"])
+                      | "| " + _aws_to_cell(r["RouteTableId"]) +
+                        " | " + _aws_to_cell(r["VpcId"]) +
+                        " | " + _aws_to_cell(route_count) +
+                        " | " + _aws_tag_value(r["Tags"], "Name") + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract internet gateways from a DescribeInternetGateways response.
+  def internet_gateways(response):
+    if (is_none(response["InternetGateways"])): [] else: response["InternetGateways"]
+  end
+
+  # Filter internet gateways attached to a specific VPC.
+  def internet_gateways_by_vpc(response, vpc_id):
+    filter(internet_gateways(response), fn(igw):
+      !is_none(igw["Attachments"]) && len(filter(igw["Attachments"], fn(a): a["VpcId"] == vpc_id;)) > 0;
+    )
+  end
+
+  # Get all internet gateway IDs.
+  def internet_gateway_ids(response):
+    map(internet_gateways(response), fn(igw): igw["InternetGatewayId"];)
+  end
+
+  # Convert a DescribeInternetGateways response to a Markdown table.
+  def internet_gateways_to_markdown_table(response):
+    let data = internet_gateways(response)
+    | if (is_empty(data)):
+        "No internet gateways found."
+      else:
+        do
+          let header = "| InternetGatewayId | AttachedVpc | State | Name |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(igw):
+                      let first_att = if (is_none(igw["Attachments"]) || is_empty(igw["Attachments"])): None else: igw["Attachments"][0]
+                      | let vpc_id = if (is_none(first_att)): "" else: _aws_to_cell(first_att["VpcId"])
+                      | let state = if (is_none(first_att)): "detached" else: _aws_to_cell(first_att["State"])
+                      | "| " + _aws_to_cell(igw["InternetGatewayId"]) +
+                        " | " + vpc_id +
+                        " | " + state +
+                        " | " + _aws_tag_value(igw["Tags"], "Name") + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract VPC endpoints from a DescribeVpcEndpoints response.
+  def vpc_endpoints(response):
+    if (is_none(response["VpcEndpoints"])): [] else: response["VpcEndpoints"]
+  end
+
+  # Filter VPC endpoints by VPC ID.
+  def vpc_endpoints_by_vpc(response, vpc_id):
+    filter(vpc_endpoints(response), fn(ep): ep["VpcId"] == vpc_id;)
+  end
+
+  # Filter VPC endpoints by type (e.g. "Gateway", "Interface").
+  def vpc_endpoints_by_type(response, type):
+    filter(vpc_endpoints(response), fn(ep): ep["VpcEndpointType"] == type;)
+  end
+
+  # Convert a DescribeVpcEndpoints response to a Markdown table.
+  def vpc_endpoints_to_markdown_table(response):
+    let data = vpc_endpoints(response)
+    | if (is_empty(data)):
+        "No VPC endpoints found."
+      else:
+        do
+          let header = "| VpcEndpointId | VpcId | ServiceName | Type | State |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(ep):
+                      "| " + _aws_to_cell(ep["VpcEndpointId"]) +
+                        " | " + _aws_to_cell(ep["VpcId"]) +
+                        " | " + _aws_to_cell(ep["ServiceName"]) +
+                        " | " + _aws_to_cell(ep["VpcEndpointType"]) +
+                        " | " + _aws_to_cell(ep["State"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
 end
 
 |
@@ -340,6 +553,121 @@ module iam:
           | _aws_table(header, sep, rows)
         end
   end
+
+  # Extract groups from a ListGroups response.
+  def groups(response):
+    if (is_none(response["Groups"])): [] else: response["Groups"]
+  end
+
+  # Get all group names.
+  def group_names(response):
+    map(groups(response), fn(g): g["GroupName"];)
+  end
+
+  # Convert a ListGroups response to a Markdown table.
+  def groups_to_markdown_table(response):
+    let data = groups(response)
+    | if (is_empty(data)):
+        "No groups found."
+      else:
+        do
+          let header = "| GroupName | GroupId | Arn | CreateDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(g):
+                      "| " + _aws_to_cell(g["GroupName"]) +
+                        " | " + _aws_to_cell(g["GroupId"]) +
+                        " | " + _aws_to_cell(g["Arn"]) +
+                        " | " + _aws_to_cell(g["CreateDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract instance profiles from a ListInstanceProfiles response.
+  def instance_profiles(response):
+    if (is_none(response["InstanceProfiles"])): [] else: response["InstanceProfiles"]
+  end
+
+  # Get all instance profile names.
+  def instance_profile_names(response):
+    map(instance_profiles(response), fn(p): p["InstanceProfileName"];)
+  end
+
+  # Convert a ListInstanceProfiles response to a Markdown table.
+  def instance_profiles_to_markdown_table(response):
+    let data = instance_profiles(response)
+    | if (is_empty(data)):
+        "No instance profiles found."
+      else:
+        do
+          let header = "| InstanceProfileName | InstanceProfileId | Arn | CreateDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["InstanceProfileName"]) +
+                        " | " + _aws_to_cell(p["InstanceProfileId"]) +
+                        " | " + _aws_to_cell(p["Arn"]) +
+                        " | " + _aws_to_cell(p["CreateDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract access key metadata from a ListAccessKeys response.
+  def access_keys(response):
+    if (is_none(response["AccessKeyMetadata"])): [] else: response["AccessKeyMetadata"]
+  end
+
+  # Filter active access keys.
+  def active_access_keys(response):
+    filter(access_keys(response), fn(k): k["Status"] == "Active";)
+  end
+
+  # Convert a ListAccessKeys response to a Markdown table.
+  def access_keys_to_markdown_table(response):
+    let data = access_keys(response)
+    | if (is_empty(data)):
+        "No access keys found."
+      else:
+        do
+          let header = "| UserName | AccessKeyId | Status | CreateDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(k):
+                      "| " + _aws_to_cell(k["UserName"]) +
+                        " | " + _aws_to_cell(k["AccessKeyId"]) +
+                        " | " + _aws_to_cell(k["Status"]) +
+                        " | " + _aws_to_cell(k["CreateDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract MFA devices from a ListMFADevices response.
+  def mfa_devices(response):
+    if (is_none(response["MFADevices"])): [] else: response["MFADevices"]
+  end
+
+  # Get all usernames that have MFA devices.
+  def mfa_device_usernames(response):
+    map(mfa_devices(response), fn(d): d["UserName"];)
+  end
+
+  # Convert a ListMFADevices response to a Markdown table.
+  def mfa_devices_to_markdown_table(response):
+    let data = mfa_devices(response)
+    | if (is_empty(data)):
+        "No MFA devices found."
+      else:
+        do
+          let header = "| UserName | SerialNumber | EnableDate |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(d):
+                      "| " + _aws_to_cell(d["UserName"]) +
+                        " | " + _aws_to_cell(d["SerialNumber"]) +
+                        " | " + _aws_to_cell(d["EnableDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
 end
 
 |
@@ -390,6 +718,68 @@ module lambda:
           | _aws_table(header, sep, rows)
         end
   end
+
+  # Extract event source mappings from a ListEventSourceMappings response.
+  def event_source_mappings(response):
+    if (is_none(response["EventSourceMappings"])): [] else: response["EventSourceMappings"]
+  end
+
+  # Filter enabled event source mappings.
+  def enabled_event_source_mappings(response):
+    filter(event_source_mappings(response), fn(m): m["State"] == "Enabled";)
+  end
+
+  # Convert a ListEventSourceMappings response to a Markdown table.
+  def event_source_mappings_to_markdown_table(response):
+    let data = event_source_mappings(response)
+    | if (is_empty(data)):
+        "No event source mappings found."
+      else:
+        do
+          let header = "| UUID | FunctionArn | EventSourceArn | State | BatchSize |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(m):
+                      "| " + _aws_to_cell(m["UUID"]) +
+                        " | " + _aws_to_cell(m["FunctionArn"]) +
+                        " | " + _aws_to_cell(m["EventSourceArn"]) +
+                        " | " + _aws_to_cell(m["State"]) +
+                        " | " + _aws_to_cell(m["BatchSize"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract layers from a ListLayers response.
+  def layers(response):
+    if (is_none(response["Layers"])): [] else: response["Layers"]
+  end
+
+  # Get all layer names.
+  def layer_names(response):
+    map(layers(response), fn(l): l["LayerName"];)
+  end
+
+  # Convert a ListLayers response to a Markdown table.
+  def layers_to_markdown_table(response):
+    let data = layers(response)
+    | if (is_empty(data)):
+        "No layers found."
+      else:
+        do
+          let header = "| LayerName | LayerArn | LatestVersion | CompatibleRuntimes |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(l):
+                      let latest = if (is_none(l["LatestMatchingVersion"])): None else: l["LatestMatchingVersion"]
+                      | let version = if (is_none(latest)): "" else: _aws_to_cell(latest["Version"])
+                      | let runtimes = if (is_none(latest) || is_none(latest["CompatibleRuntimes"])): "" else: _aws_to_cell(latest["CompatibleRuntimes"])
+                      | "| " + _aws_to_cell(l["LayerName"]) +
+                        " | " + _aws_to_cell(l["LayerArn"]) +
+                        " | " + version +
+                        " | " + runtimes + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
 end
 
 |
@@ -431,6 +821,84 @@ module rds:
                         " | " + _aws_to_cell(i["EngineVersion"]) +
                         " | " + _aws_to_cell(i["DBInstanceStatus"]) +
                         " | " + _aws_to_cell(i["MultiAZ"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract DB snapshots from a DescribeDBSnapshots response.
+  def db_snapshots(response):
+    if (is_none(response["DBSnapshots"])): [] else: response["DBSnapshots"]
+  end
+
+  # Filter automated snapshots.
+  def automated_snapshots(response):
+    filter(db_snapshots(response), fn(s): s["SnapshotType"] == "automated";)
+  end
+
+  # Filter manual snapshots.
+  def manual_snapshots(response):
+    filter(db_snapshots(response), fn(s): s["SnapshotType"] == "manual";)
+  end
+
+  # Get available snapshots.
+  def available_snapshots(response):
+    filter(db_snapshots(response), fn(s): s["Status"] == "available";)
+  end
+
+  # Convert a DescribeDBSnapshots response to a Markdown table.
+  def db_snapshots_to_markdown_table(response):
+    let data = db_snapshots(response)
+    | if (is_empty(data)):
+        "No DB snapshots found."
+      else:
+        do
+          let header = "| SnapshotId | DBInstanceIdentifier | Engine | Status | SnapshotType | AllocatedStorage |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(s):
+                      "| " + _aws_to_cell(s["DBSnapshotIdentifier"]) +
+                        " | " + _aws_to_cell(s["DBInstanceIdentifier"]) +
+                        " | " + _aws_to_cell(s["Engine"]) +
+                        " | " + _aws_to_cell(s["Status"]) +
+                        " | " + _aws_to_cell(s["SnapshotType"]) +
+                        " | " + _aws_to_cell(s["AllocatedStorage"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract DB clusters from a DescribeDBClusters response (Aurora).
+  def db_clusters(response):
+    if (is_none(response["DBClusters"])): [] else: response["DBClusters"]
+  end
+
+  # Filter available Aurora clusters.
+  def available_db_clusters(response):
+    filter(db_clusters(response), fn(c): c["Status"] == "available";)
+  end
+
+  # Get all cluster identifiers.
+  def db_cluster_ids(response):
+    map(db_clusters(response), fn(c): c["DBClusterIdentifier"];)
+  end
+
+  # Convert a DescribeDBClusters response to a Markdown table.
+  def db_clusters_to_markdown_table(response):
+    let data = db_clusters(response)
+    | if (is_empty(data)):
+        "No DB clusters found."
+      else:
+        do
+          let header = "| DBClusterIdentifier | Engine | EngineVersion | Status | MultiAZ | Members |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                      let member_count = if (is_none(c["DBClusterMembers"])): 0 else: len(c["DBClusterMembers"])
+                      | "| " + _aws_to_cell(c["DBClusterIdentifier"]) +
+                        " | " + _aws_to_cell(c["Engine"]) +
+                        " | " + _aws_to_cell(c["EngineVersion"]) +
+                        " | " + _aws_to_cell(c["Status"]) +
+                        " | " + _aws_to_cell(c["MultiAZ"]) +
+                        " | " + _aws_to_cell(member_count) + " |"
                     end)
           | _aws_table(header, sep, rows)
         end
@@ -707,6 +1175,55 @@ module ecs:
           | _aws_table(header, sep, rows)
         end
   end
+
+  # Extract task definition ARNs from a ListTaskDefinitions response.
+  def task_definition_arns(response):
+    if (is_none(response["taskDefinitionArns"])): [] else: response["taskDefinitionArns"]
+  end
+
+  # Get the count of task definitions.
+  def task_definition_count(response):
+    len(task_definition_arns(response))
+  end
+
+  # Convert a ListTaskDefinitions response to a Markdown table.
+  def task_definition_arns_to_markdown_table(response):
+    let data = task_definition_arns(response)
+    | if (is_empty(data)):
+        "No task definitions found."
+      else:
+        do
+          let header = "| TaskDefinitionArn |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(arn): "| " + arn + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract task definition detail from a DescribeTaskDefinition response.
+  def task_definition(response):
+    response["taskDefinition"]
+  end
+
+  # Convert a DescribeTaskDefinition response to a Markdown table.
+  def task_definition_info_to_markdown_table(response):
+    let td = task_definition(response)
+    | if (is_none(td)):
+        "No task definition found."
+      else:
+        do
+          let header = "| Family | Revision | Status | Cpu | Memory | Containers |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let container_count = if (is_none(td["containerDefinitions"])): 0 else: len(td["containerDefinitions"])
+          | let row = "| " + _aws_to_cell(td["family"]) +
+            " | " + _aws_to_cell(td["revision"]) +
+            " | " + _aws_to_cell(td["status"]) +
+            " | " + _aws_to_cell(td["cpu"]) +
+            " | " + _aws_to_cell(td["memory"]) +
+            " | " + _aws_to_cell(container_count) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
 end
 
 |
@@ -767,6 +1284,41 @@ module dynamodb:
           | _aws_table(header, sep, [row])
         end
   end
+
+  # Extract backup summaries from a ListBackups response.
+  def backups(response):
+    if (is_none(response["BackupSummaries"])): [] else: response["BackupSummaries"]
+  end
+
+  # Filter backups by table name.
+  def backups_by_table(response, table_name):
+    filter(backups(response), fn(b): b["TableName"] == table_name;)
+  end
+
+  # Filter available backups.
+  def available_backups(response):
+    filter(backups(response), fn(b): b["BackupStatus"] == "AVAILABLE";)
+  end
+
+  # Convert a ListBackups response to a Markdown table.
+  def backups_to_markdown_table(response):
+    let data = backups(response)
+    | if (is_empty(data)):
+        "No backups found."
+      else:
+        do
+          let header = "| TableName | BackupName | BackupStatus | BackupType | CreationDateTime |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(b):
+                      "| " + _aws_to_cell(b["TableName"]) +
+                        " | " + _aws_to_cell(b["BackupName"]) +
+                        " | " + _aws_to_cell(b["BackupStatus"]) +
+                        " | " + _aws_to_cell(b["BackupType"]) +
+                        " | " + _aws_to_cell(b["BackupCreationDateTime"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
 end
 
 |
@@ -817,6 +1369,95 @@ module cloudwatch:
                         " | " + _aws_to_cell(a["Namespace"]) +
                         " | " + _aws_to_cell(a["MetricName"]) +
                         " | " + _aws_to_cell(a["Threshold"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract log groups from a DescribeLogGroups response.
+  def log_groups(response):
+    if (is_none(response["logGroups"])): [] else: response["logGroups"]
+  end
+
+  # Get all log group names.
+  def log_group_names(response):
+    map(log_groups(response), fn(g): g["logGroupName"];)
+  end
+
+  # Get total stored bytes across all log groups.
+  def total_stored_bytes(response):
+    fold(map(log_groups(response), fn(g): if (is_none(g["storedBytes"])): 0 else: g["storedBytes"];), 0, fn(acc, s): acc + s;)
+  end
+
+  # Convert a DescribeLogGroups response to a Markdown table.
+  def log_groups_to_markdown_table(response):
+    let data = log_groups(response)
+    | if (is_empty(data)):
+        "No log groups found."
+      else:
+        do
+          let header = "| LogGroupName | RetentionDays | StoredBytes |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(g):
+                      "| " + _aws_to_cell(g["logGroupName"]) +
+                        " | " + _aws_to_cell(g["retentionInDays"]) +
+                        " | " + _aws_to_cell(g["storedBytes"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract log streams from a DescribeLogStreams response.
+  def log_streams(response):
+    if (is_none(response["logStreams"])): [] else: response["logStreams"]
+  end
+
+  # Get all log stream names.
+  def log_stream_names(response):
+    map(log_streams(response), fn(s): s["logStreamName"];)
+  end
+
+  # Convert a DescribeLogStreams response to a Markdown table.
+  def log_streams_to_markdown_table(response):
+    let data = log_streams(response)
+    | if (is_empty(data)):
+        "No log streams found."
+      else:
+        do
+          let header = "| LogStreamName | StoredBytes |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(s):
+                      "| " + _aws_to_cell(s["logStreamName"]) +
+                        " | " + _aws_to_cell(s["storedBytes"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract dashboards from a ListDashboards response.
+  def dashboards(response):
+    if (is_none(response["DashboardEntries"])): [] else: response["DashboardEntries"]
+  end
+
+  # Get all dashboard names.
+  def dashboard_names(response):
+    map(dashboards(response), fn(d): d["DashboardName"];)
+  end
+
+  # Convert a ListDashboards response to a Markdown table.
+  def dashboards_to_markdown_table(response):
+    let data = dashboards(response)
+    | if (is_empty(data)):
+        "No dashboards found."
+      else:
+        do
+          let header = "| DashboardName | DashboardArn | LastModified | Size |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(d):
+                      "| " + _aws_to_cell(d["DashboardName"]) +
+                        " | " + _aws_to_cell(d["DashboardArn"]) +
+                        " | " + _aws_to_cell(d["LastModified"]) +
+                        " | " + _aws_to_cell(d["Size"]) + " |"
                     end)
           | _aws_table(header, sep, rows)
         end
@@ -1037,11 +1678,1977 @@ module route53:
       else:
         do
           let header = "| Name | Type | TTL |"
-          | let sep = "| --- | --- | --- |"
+          | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
                       "| " + _aws_to_cell(r["Name"]) +
                         " | " + _aws_to_cell(r["Type"]) +
                         " | " + _aws_to_cell(r["TTL"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract health checks from a ListHealthChecks response.
+  def health_checks(response):
+    if (is_none(response["HealthChecks"])): [] else: response["HealthChecks"]
+  end
+
+  # Filter health checks by type (e.g. "HTTP", "HTTPS", "TCP").
+  def health_checks_by_type(response, type):
+    filter(health_checks(response), fn(hc):
+      !is_none(hc["HealthCheckConfig"]) && hc["HealthCheckConfig"]["Type"] == type;
+    )
+  end
+
+  # Get health check count.
+  def health_check_count(response):
+    len(health_checks(response))
+  end
+
+  # Convert a ListHealthChecks response to a Markdown table.
+  def health_checks_to_markdown_table(response):
+    let data = health_checks(response)
+    | if (is_empty(data)):
+        "No health checks found."
+      else:
+        do
+          let header = "| Id | Type | FQDN | Port | Version |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(hc):
+                      let cfg = if (is_none(hc["HealthCheckConfig"])): None else: hc["HealthCheckConfig"]
+                      | let hc_type = if (is_none(cfg)): "" else: _aws_to_cell(cfg["Type"])
+                      | let fqdn = if (is_none(cfg) || is_none(cfg["FullyQualifiedDomainName"])): "" else: _aws_to_cell(cfg["FullyQualifiedDomainName"])
+                      | let port = if (is_none(cfg) || is_none(cfg["Port"])): "" else: _aws_to_cell(cfg["Port"])
+                      | "| " + _aws_to_cell(hc["Id"]) +
+                        " | " + hc_type +
+                        " | " + fqdn +
+                        " | " + port +
+                        " | " + _aws_to_cell(hc["HealthCheckVersion"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module eks:
+  # Extract cluster names from a ListClusters response.
+  def cluster_names(response):
+    if (is_none(response["clusters"])): [] else: response["clusters"]
+  end
+
+  # Get the number of clusters.
+  def cluster_count(response):
+    len(cluster_names(response))
+  end
+
+  # Convert a ListClusters response to a Markdown table.
+  def cluster_names_to_markdown_table(response):
+    let data = cluster_names(response)
+    | if (is_empty(data)):
+        "No clusters found."
+      else:
+        do
+          let header = "| ClusterName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract the cluster object from a DescribeCluster response.
+  def cluster(response):
+    response["cluster"]
+  end
+
+  # Get the cluster status from a DescribeCluster response.
+  def cluster_status(response):
+    if (is_none(cluster(response))): None else: cluster(response)["status"]
+  end
+
+  # Get the Kubernetes version from a DescribeCluster response.
+  def cluster_version(response):
+    if (is_none(cluster(response))): None else: cluster(response)["version"]
+  end
+
+  # Convert a DescribeCluster response to a Markdown table.
+  def cluster_info_to_markdown_table(response):
+    let c = cluster(response)
+    | if (is_none(c)):
+        "No cluster found."
+      else:
+        do
+          let header = "| Name | Status | Version | Endpoint |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let row = "| " + _aws_to_cell(c["name"]) +
+            " | " + _aws_to_cell(c["status"]) +
+            " | " + _aws_to_cell(c["version"]) +
+            " | " + _aws_to_cell(c["endpoint"]) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
+
+  # Extract nodegroup names from a ListNodegroups response.
+  def nodegroup_names(response):
+    if (is_none(response["nodegroups"])): [] else: response["nodegroups"]
+  end
+
+  # Convert a ListNodegroups response to a Markdown table.
+  def nodegroup_names_to_markdown_table(response):
+    let data = nodegroup_names(response)
+    | if (is_empty(data)):
+        "No nodegroups found."
+      else:
+        do
+          let header = "| NodegroupName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract the nodegroup object from a DescribeNodegroup response.
+  def nodegroup(response):
+    response["nodegroup"]
+  end
+
+  # Convert a DescribeNodegroup response to a Markdown table.
+  def nodegroup_info_to_markdown_table(response):
+    let ng = nodegroup(response)
+    | if (is_none(ng)):
+        "No nodegroup found."
+      else:
+        do
+          let header = "| NodegroupName | Status | InstanceType | DesiredSize | MinSize | MaxSize |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let instance_type = if (is_none(ng["instanceTypes"]) || is_empty(ng["instanceTypes"])): "" else: ng["instanceTypes"][0]
+          | let scaling = if (is_none(ng["scalingConfig"])): {} else: ng["scalingConfig"]
+          | let row = "| " + _aws_to_cell(ng["nodegroupName"]) +
+            " | " + _aws_to_cell(ng["status"]) +
+            " | " + instance_type +
+            " | " + _aws_to_cell(scaling["desiredSize"]) +
+            " | " + _aws_to_cell(scaling["minSize"]) +
+            " | " + _aws_to_cell(scaling["maxSize"]) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
+end
+
+|
+
+module kinesis:
+  # Extract stream names from a ListStreams response.
+  def stream_names(response):
+    if (is_none(response["StreamNames"])): [] else: response["StreamNames"]
+  end
+
+  # Get the number of streams.
+  def stream_count(response):
+    len(stream_names(response))
+  end
+
+  # Convert a ListStreams response to a Markdown table.
+  def stream_names_to_markdown_table(response):
+    let data = stream_names(response)
+    | if (is_empty(data)):
+        "No streams found."
+      else:
+        do
+          let header = "| StreamName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract the stream description from a DescribeStream response.
+  def stream_description(response):
+    response["StreamDescription"]
+  end
+
+  # Get the stream status from a DescribeStream response.
+  def stream_status(response):
+    let desc = stream_description(response)
+    | if (is_none(desc)): None else: desc["StreamStatus"]
+  end
+
+  # Get the shards from a DescribeStream response.
+  def shards(response):
+    let desc = stream_description(response)
+    | if (is_none(desc) || is_none(desc["Shards"])): [] else: desc["Shards"]
+  end
+
+  # Get the shard count from a DescribeStream response.
+  def shard_count(response):
+    len(shards(response))
+  end
+
+  # Convert a DescribeStream response to a Markdown table.
+  def stream_info_to_markdown_table(response):
+    let desc = stream_description(response)
+    | if (is_none(desc)):
+        "No stream found."
+      else:
+        do
+          let header = "| StreamName | Status | ShardCount | RetentionPeriodHours |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let row = "| " + _aws_to_cell(desc["StreamName"]) +
+            " | " + _aws_to_cell(desc["StreamStatus"]) +
+            " | " + _aws_to_cell(len(if (is_none(desc["Shards"])): [] else: desc["Shards"])) +
+            " | " + _aws_to_cell(desc["RetentionPeriodHours"]) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
+end
+
+|
+
+module elasticache:
+  # Extract cache clusters from a DescribeCacheClusters response.
+  def cache_clusters(response):
+    if (is_none(response["CacheClusters"])): [] else: response["CacheClusters"]
+  end
+
+  # Filter available cache clusters.
+  def available_clusters(response):
+    filter(cache_clusters(response), fn(c): c["CacheClusterStatus"] == "available";)
+  end
+
+  # Filter cache clusters by engine (e.g. "redis", "memcached").
+  def by_engine(response, engine):
+    filter(cache_clusters(response), fn(c): c["Engine"] == engine;)
+  end
+
+  # Get all cache cluster IDs.
+  def cluster_ids(response):
+    map(cache_clusters(response), fn(c): c["CacheClusterId"];)
+  end
+
+  # Convert a DescribeCacheClusters response to a Markdown table.
+  def cache_clusters_to_markdown_table(response):
+    let data = cache_clusters(response)
+    | if (is_empty(data)):
+        "No cache clusters found."
+      else:
+        do
+          let header = "| CacheClusterId | Engine | EngineVersion | Status | NodeType | NumNodes |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                      "| " + _aws_to_cell(c["CacheClusterId"]) +
+                        " | " + _aws_to_cell(c["Engine"]) +
+                        " | " + _aws_to_cell(c["EngineVersion"]) +
+                        " | " + _aws_to_cell(c["CacheClusterStatus"]) +
+                        " | " + _aws_to_cell(c["CacheNodeType"]) +
+                        " | " + _aws_to_cell(c["NumCacheNodes"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract replication groups from a DescribeReplicationGroups response.
+  def replication_groups(response):
+    if (is_none(response["ReplicationGroups"])): [] else: response["ReplicationGroups"]
+  end
+
+  # Get all replication group IDs.
+  def replication_group_ids(response):
+    map(replication_groups(response), fn(rg): rg["ReplicationGroupId"];)
+  end
+
+  # Filter available replication groups.
+  def available_replication_groups(response):
+    filter(replication_groups(response), fn(rg): rg["Status"] == "available";)
+  end
+
+  # Convert a DescribeReplicationGroups response to a Markdown table.
+  def replication_groups_to_markdown_table(response):
+    let data = replication_groups(response)
+    | if (is_empty(data)):
+        "No replication groups found."
+      else:
+        do
+          let header = "| ReplicationGroupId | Description | Status | MultiAZ |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(rg):
+                      "| " + _aws_to_cell(rg["ReplicationGroupId"]) +
+                        " | " + _aws_to_cell(rg["Description"]) +
+                        " | " + _aws_to_cell(rg["Status"]) +
+                        " | " + _aws_to_cell(rg["MultiAZ"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module apigateway:
+  # Extract REST APIs from a GetRestApis response (API Gateway v1).
+  def rest_apis(response):
+    if (is_none(response["items"])): [] else: response["items"]
+  end
+
+  # Get all REST API names.
+  def rest_api_names(response):
+    map(rest_apis(response), fn(a): a["name"];)
+  end
+
+  # Convert a GetRestApis response to a Markdown table.
+  def rest_apis_to_markdown_table(response):
+    let data = rest_apis(response)
+    | if (is_empty(data)):
+        "No REST APIs found."
+      else:
+        do
+          let header = "| Name | Id | Description | CreatedDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                      "| " + _aws_to_cell(a["name"]) +
+                        " | " + _aws_to_cell(a["id"]) +
+                        " | " + _aws_to_cell(a["description"]) +
+                        " | " + _aws_to_cell(a["createdDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract HTTP APIs from a GetApis response (API Gateway v2).
+  def http_apis(response):
+    if (is_none(response["Items"])): [] else: response["Items"]
+  end
+
+  # Get all HTTP API names.
+  def http_api_names(response):
+    map(http_apis(response), fn(a): a["Name"];)
+  end
+
+  # Filter HTTP APIs by protocol type (e.g. "HTTP", "WEBSOCKET").
+  def http_apis_by_protocol(response, protocol):
+    filter(http_apis(response), fn(a): a["ProtocolType"] == protocol;)
+  end
+
+  # Convert a GetApis response to a Markdown table.
+  def http_apis_to_markdown_table(response):
+    let data = http_apis(response)
+    | if (is_empty(data)):
+        "No HTTP APIs found."
+      else:
+        do
+          let header = "| Name | ApiId | ProtocolType | ApiEndpoint |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                      "| " + _aws_to_cell(a["Name"]) +
+                        " | " + _aws_to_cell(a["ApiId"]) +
+                        " | " + _aws_to_cell(a["ProtocolType"]) +
+                        " | " + _aws_to_cell(a["ApiEndpoint"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module stepfunctions:
+  # Extract state machines from a ListStateMachines response.
+  def state_machines(response):
+    if (is_none(response["stateMachines"])): [] else: response["stateMachines"]
+  end
+
+  # Get all state machine names.
+  def state_machine_names(response):
+    map(state_machines(response), fn(sm): sm["name"];)
+  end
+
+  # Filter state machines by type ("STANDARD" or "EXPRESS").
+  def by_type(response, type):
+    filter(state_machines(response), fn(sm): sm["type"] == type;)
+  end
+
+  # Convert a ListStateMachines response to a Markdown table.
+  def state_machines_to_markdown_table(response):
+    let data = state_machines(response)
+    | if (is_empty(data)):
+        "No state machines found."
+      else:
+        do
+          let header = "| Name | Type | CreationDate |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(sm):
+                      "| " + _aws_to_cell(sm["name"]) +
+                        " | " + _aws_to_cell(sm["type"]) +
+                        " | " + _aws_to_cell(sm["creationDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract executions from a ListExecutions response.
+  def executions(response):
+    if (is_none(response["executions"])): [] else: response["executions"]
+  end
+
+  # Filter executions by status (e.g. "RUNNING", "SUCCEEDED", "FAILED").
+  def executions_by_status(response, status):
+    filter(executions(response), fn(e): e["status"] == status;)
+  end
+
+  # Return running executions.
+  def running_executions(response):
+    executions_by_status(response, "RUNNING")
+  end
+
+  # Convert a ListExecutions response to a Markdown table.
+  def executions_to_markdown_table(response):
+    let data = executions(response)
+    | if (is_empty(data)):
+        "No executions found."
+      else:
+        do
+          let header = "| Name | Status | StartDate | StopDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(e):
+                      "| " + _aws_to_cell(e["name"]) +
+                        " | " + _aws_to_cell(e["status"]) +
+                        " | " + _aws_to_cell(e["startDate"]) +
+                        " | " + _aws_to_cell(e["stopDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module eventbridge:
+  # Extract rules from a ListRules response.
+  def rules(response):
+    if (is_none(response["Rules"])): [] else: response["Rules"]
+  end
+
+  # Get all rule names.
+  def rule_names(response):
+    map(rules(response), fn(r): r["Name"];)
+  end
+
+  # Filter rules by state ("ENABLED" or "DISABLED").
+  def enabled_rules(response):
+    filter(rules(response), fn(r): r["State"] == "ENABLED";)
+  end
+
+  # Filter rules by state ("DISABLED").
+  def disabled_rules(response):
+    filter(rules(response), fn(r): r["State"] == "DISABLED";)
+  end
+
+  # Convert a ListRules response to a Markdown table.
+  def rules_to_markdown_table(response):
+    let data = rules(response)
+    | if (is_empty(data)):
+        "No rules found."
+      else:
+        do
+          let header = "| Name | State | ScheduleExpression | EventBusName |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(r):
+                      "| " + _aws_to_cell(r["Name"]) +
+                        " | " + _aws_to_cell(r["State"]) +
+                        " | " + _aws_to_cell(r["ScheduleExpression"]) +
+                        " | " + _aws_to_cell(r["EventBusName"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract event buses from a ListEventBuses response.
+  def event_buses(response):
+    if (is_none(response["EventBuses"])): [] else: response["EventBuses"]
+  end
+
+  # Get all event bus names.
+  def event_bus_names(response):
+    map(event_buses(response), fn(b): b["Name"];)
+  end
+
+  # Convert a ListEventBuses response to a Markdown table.
+  def event_buses_to_markdown_table(response):
+    let data = event_buses(response)
+    | if (is_empty(data)):
+        "No event buses found."
+      else:
+        do
+          let header = "| Name | Arn |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(b):
+                      "| " + _aws_to_cell(b["Name"]) +
+                        " | " + _aws_to_cell(b["Arn"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module ecr:
+  # Extract repositories from a DescribeRepositories response.
+  def repositories(response):
+    if (is_none(response["repositories"])): [] else: response["repositories"]
+  end
+
+  # Get all repository names.
+  def repository_names(response):
+    map(repositories(response), fn(r): r["repositoryName"];)
+  end
+
+  # Convert a DescribeRepositories response to a Markdown table.
+  def repositories_to_markdown_table(response):
+    let data = repositories(response)
+    | if (is_empty(data)):
+        "No repositories found."
+      else:
+        do
+          let header = "| RepositoryName | RepositoryUri | CreatedAt |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(r):
+                      "| " + _aws_to_cell(r["repositoryName"]) +
+                        " | " + _aws_to_cell(r["repositoryUri"]) +
+                        " | " + _aws_to_cell(r["createdAt"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract image details from a DescribeImages response.
+  def images(response):
+    if (is_none(response["imageDetails"])): [] else: response["imageDetails"]
+  end
+
+  # Get all image tags (flattened across all images).
+  def image_tags(response):
+    flatten(map(images(response), fn(img):
+      if (is_none(img["imageTags"])): [] else: img["imageTags"];
+    ))
+  end
+
+  # Get total size in bytes across all images.
+  def total_image_size(response):
+    fold(map(images(response), fn(img): img["imageSizeInBytes"];), 0, fn(acc, s): acc + s;)
+  end
+
+  # Convert a DescribeImages response to a Markdown table.
+  def images_to_markdown_table(response):
+    let data = images(response)
+    | if (is_empty(data)):
+        "No images found."
+      else:
+        do
+          let header = "| RepositoryName | ImageDigest | Tags | SizeBytes | PushedAt |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(img):
+                      let tags = if (is_none(img["imageTags"])): "" else: join(img["imageTags"], ",")
+                      | "| " + _aws_to_cell(img["repositoryName"]) +
+                        " | " + _aws_to_cell(img["imageDigest"]) +
+                        " | " + tags +
+                        " | " + _aws_to_cell(img["imageSizeInBytes"]) +
+                        " | " + _aws_to_cell(img["imagePushedAt"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module cognito:
+  # Extract user pools from a ListUserPools response.
+  def user_pools(response):
+    if (is_none(response["UserPools"])): [] else: response["UserPools"]
+  end
+
+  # Get all user pool names.
+  def user_pool_names(response):
+    map(user_pools(response), fn(p): p["Name"];)
+  end
+
+  # Convert a ListUserPools response to a Markdown table.
+  def user_pools_to_markdown_table(response):
+    let data = user_pools(response)
+    | if (is_empty(data)):
+        "No user pools found."
+      else:
+        do
+          let header = "| Name | Id | Status | CreationDate | LastModifiedDate |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["Name"]) +
+                        " | " + _aws_to_cell(p["Id"]) +
+                        " | " + _aws_to_cell(p["Status"]) +
+                        " | " + _aws_to_cell(p["CreationDate"]) +
+                        " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract users from a ListUsers response.
+  def users(response):
+    if (is_none(response["Users"])): [] else: response["Users"]
+  end
+
+  # Get all usernames.
+  def usernames(response):
+    map(users(response), fn(u): u["Username"];)
+  end
+
+  # Filter confirmed (active) users.
+  def confirmed_users(response):
+    filter(users(response), fn(u): u["UserStatus"] == "CONFIRMED";)
+  end
+
+  # Filter users by status (e.g. "CONFIRMED", "UNCONFIRMED", "FORCE_CHANGE_PASSWORD").
+  def users_by_status(response, status):
+    filter(users(response), fn(u): u["UserStatus"] == status;)
+  end
+
+  # Filter enabled users.
+  def enabled_users(response):
+    filter(users(response), fn(u): u["Enabled"] == true;)
+  end
+
+  # Get a user attribute value by name.
+  def user_attribute(user, name):
+    let attrs = if (is_none(user["Attributes"])): [] else: user["Attributes"]
+    | let matches = filter(attrs, fn(a): a["Name"] == name;)
+    | if (is_empty(matches)): None else: first(matches)["Value"]
+  end
+
+  # Convert a ListUsers response to a Markdown table.
+  def users_to_markdown_table(response):
+    let data = users(response)
+    | if (is_empty(data)):
+        "No users found."
+      else:
+        do
+          let header = "| Username | Status | Enabled | UserCreateDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(u):
+                      "| " + _aws_to_cell(u["Username"]) +
+                        " | " + _aws_to_cell(u["UserStatus"]) +
+                        " | " + _aws_to_cell(u["Enabled"]) +
+                        " | " + _aws_to_cell(u["UserCreateDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module cloudfront:
+  # Extract distributions from a ListDistributions response.
+  def distributions(response):
+    if (is_none(response["DistributionList"])): []
+    elif (is_none(response["DistributionList"]["Items"])): []
+    else: response["DistributionList"]["Items"]
+  end
+
+  # Filter deployed distributions.
+  def deployed_distributions(response):
+    filter(distributions(response), fn(d): d["Status"] == "Deployed";)
+  end
+
+  # Filter enabled distributions.
+  def enabled_distributions(response):
+    filter(distributions(response), fn(d): d["Enabled"] == true;)
+  end
+
+  # Get all distribution domain names.
+  def distribution_domain_names(response):
+    map(distributions(response), fn(d): d["DomainName"];)
+  end
+
+  # Convert a ListDistributions response to a Markdown table.
+  def distributions_to_markdown_table(response):
+    let data = distributions(response)
+    | if (is_empty(data)):
+        "No distributions found."
+      else:
+        do
+          let header = "| Id | DomainName | Status | Enabled | Comment |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(d):
+                      "| " + _aws_to_cell(d["Id"]) +
+                        " | " + _aws_to_cell(d["DomainName"]) +
+                        " | " + _aws_to_cell(d["Status"]) +
+                        " | " + _aws_to_cell(d["Enabled"]) +
+                        " | " + _aws_to_cell(d["Comment"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module acm:
+  # Extract certificates from a ListCertificates response.
+  def certificates(response):
+    if (is_none(response["CertificateSummaryList"])): [] else: response["CertificateSummaryList"]
+  end
+
+  # Filter issued certificates.
+  def issued_certificates(response):
+    filter(certificates(response), fn(c): c["Status"] == "ISSUED";)
+  end
+
+  # Get all certificate domain names.
+  def certificate_domain_names(response):
+    map(certificates(response), fn(c): c["DomainName"];)
+  end
+
+  # Convert a ListCertificates response to a Markdown table.
+  def certificates_to_markdown_table(response):
+    let data = certificates(response)
+    | if (is_empty(data)):
+        "No certificates found."
+      else:
+        do
+          let header = "| DomainName | Status | CertificateArn |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                      "| " + _aws_to_cell(c["DomainName"]) +
+                        " | " + _aws_to_cell(c["Status"]) +
+                        " | " + _aws_to_cell(c["CertificateArn"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module kms:
+  # Extract keys from a ListKeys response.
+  def keys(response):
+    if (is_none(response["Keys"])): [] else: response["Keys"]
+  end
+
+  # Get the number of keys.
+  def key_count(response):
+    len(keys(response))
+  end
+
+  # Convert a ListKeys response to a Markdown table.
+  def keys_to_markdown_table(response):
+    let data = keys(response)
+    | if (is_empty(data)):
+        "No keys found."
+      else:
+        do
+          let header = "| KeyId | KeyArn |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(k):
+                      "| " + _aws_to_cell(k["KeyId"]) +
+                        " | " + _aws_to_cell(k["KeyArn"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract aliases from a ListAliases response.
+  def aliases(response):
+    if (is_none(response["Aliases"])): [] else: response["Aliases"]
+  end
+
+  # Get all alias names.
+  def alias_names(response):
+    map(aliases(response), fn(a): a["AliasName"];)
+  end
+
+  # Filter aliases associated with a customer-managed key (have a TargetKeyId).
+  def customer_aliases(response):
+    filter(aliases(response), fn(a): !is_none(a["TargetKeyId"]);)
+  end
+
+  # Convert a ListAliases response to a Markdown table.
+  def aliases_to_markdown_table(response):
+    let data = aliases(response)
+    | if (is_empty(data)):
+        "No aliases found."
+      else:
+        do
+          let header = "| AliasName | TargetKeyId | AliasArn |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                      "| " + _aws_to_cell(a["AliasName"]) +
+                        " | " + _aws_to_cell(a["TargetKeyId"]) +
+                        " | " + _aws_to_cell(a["AliasArn"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module cloudtrail:
+  # Extract trails from a DescribeTrails response.
+  def trails(response):
+    if (is_none(response["trailList"])): [] else: response["trailList"]
+  end
+
+  # Get all trail names.
+  def trail_names(response):
+    map(trails(response), fn(t): t["Name"];)
+  end
+
+  # Filter multi-region trails.
+  def multi_region_trails(response):
+    filter(trails(response), fn(t): t["IsMultiRegionTrail"] == true;)
+  end
+
+  # Filter trails with log file validation enabled.
+  def validated_trails(response):
+    filter(trails(response), fn(t): t["LogFileValidationEnabled"] == true;)
+  end
+
+  # Convert a DescribeTrails response to a Markdown table.
+  def trails_to_markdown_table(response):
+    let data = trails(response)
+    | if (is_empty(data)):
+        "No trails found."
+      else:
+        do
+          let header = "| Name | S3Bucket | MultiRegion | LogValidation | HomeRegion |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(t):
+                      "| " + _aws_to_cell(t["Name"]) +
+                        " | " + _aws_to_cell(t["S3BucketName"]) +
+                        " | " + _aws_to_cell(t["IsMultiRegionTrail"]) +
+                        " | " + _aws_to_cell(t["LogFileValidationEnabled"]) +
+                        " | " + _aws_to_cell(t["HomeRegion"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module ses:
+  # Extract identities from a ListIdentities response.
+  def identities(response):
+    if (is_none(response["Identities"])): [] else: response["Identities"]
+  end
+
+  # Get the number of verified identities.
+  def identity_count(response):
+    len(identities(response))
+  end
+
+  # Convert a ListIdentities response to a Markdown table.
+  def identities_to_markdown_table(response):
+    let data = identities(response)
+    | if (is_empty(data)):
+        "No identities found."
+      else:
+        do
+          let header = "| Identity |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(id): "| " + id + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract send data points from a GetSendStatistics response.
+  def send_statistics(response):
+    if (is_none(response["SendDataPoints"])): [] else: response["SendDataPoints"]
+  end
+
+  # Get total delivery attempts across all data points.
+  def total_deliveries(response):
+    fold(map(send_statistics(response), fn(p): p["DeliveryAttempts"];), 0, fn(acc, n): acc + n;)
+  end
+
+  # Get total bounces across all data points.
+  def total_bounces(response):
+    fold(map(send_statistics(response), fn(p): p["Bounces"];), 0, fn(acc, n): acc + n;)
+  end
+
+  # Get total complaints across all data points.
+  def total_complaints(response):
+    fold(map(send_statistics(response), fn(p): p["Complaints"];), 0, fn(acc, n): acc + n;)
+  end
+
+  # Convert a GetSendStatistics response to a Markdown table.
+  def send_statistics_to_markdown_table(response):
+    let data = send_statistics(response)
+    | if (is_empty(data)):
+        "No send statistics found."
+      else:
+        do
+          let header = "| Timestamp | DeliveryAttempts | Bounces | Complaints | Rejects |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["Timestamp"]) +
+                        " | " + _aws_to_cell(p["DeliveryAttempts"]) +
+                        " | " + _aws_to_cell(p["Bounces"]) +
+                        " | " + _aws_to_cell(p["Complaints"]) +
+                        " | " + _aws_to_cell(p["Rejects"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module redshift:
+  # Extract clusters from a DescribeClusters response.
+  def clusters(response):
+    if (is_none(response["Clusters"])): [] else: response["Clusters"]
+  end
+
+  # Filter available clusters.
+  def available_clusters(response):
+    filter(clusters(response), fn(c): c["ClusterStatus"] == "available";)
+  end
+
+  # Get all cluster identifiers.
+  def cluster_identifiers(response):
+    map(clusters(response), fn(c): c["ClusterIdentifier"];)
+  end
+
+  # Convert a DescribeClusters response to a Markdown table.
+  def clusters_to_markdown_table(response):
+    let data = clusters(response)
+    | if (is_empty(data)):
+        "No clusters found."
+      else:
+        do
+          let header = "| ClusterIdentifier | NodeType | Status | DBName | Nodes | PubliclyAccessible |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                      "| " + _aws_to_cell(c["ClusterIdentifier"]) +
+                        " | " + _aws_to_cell(c["NodeType"]) +
+                        " | " + _aws_to_cell(c["ClusterStatus"]) +
+                        " | " + _aws_to_cell(c["DBName"]) +
+                        " | " + _aws_to_cell(c["NumberOfNodes"]) +
+                        " | " + _aws_to_cell(c["PubliclyAccessible"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module codepipeline:
+  # Extract pipelines from a ListPipelines response.
+  def pipelines(response):
+    if (is_none(response["pipelines"])): [] else: response["pipelines"]
+  end
+
+  # Get all pipeline names.
+  def pipeline_names(response):
+    map(pipelines(response), fn(p): p["name"];)
+  end
+
+  # Convert a ListPipelines response to a Markdown table.
+  def pipelines_to_markdown_table(response):
+    let data = pipelines(response)
+    | if (is_empty(data)):
+        "No pipelines found."
+      else:
+        do
+          let header = "| Name | Version | Updated |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["name"]) +
+                        " | " + _aws_to_cell(p["version"]) +
+                        " | " + _aws_to_cell(p["updated"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract stage states from a GetPipelineState response.
+  def stage_states(response):
+    if (is_none(response["stageStates"])): [] else: response["stageStates"]
+  end
+
+  # Filter stages that failed in their latest execution.
+  def failed_stages(response):
+    filter(stage_states(response), fn(s):
+      !is_none(s["latestExecution"]) && s["latestExecution"]["status"] == "Failed";
+    )
+  end
+
+  # Filter stages currently in progress.
+  def in_progress_stages(response):
+    filter(stage_states(response), fn(s):
+      !is_none(s["latestExecution"]) && s["latestExecution"]["status"] == "InProgress";
+    )
+  end
+
+  # Convert a GetPipelineState response to a Markdown table.
+  def stage_states_to_markdown_table(response):
+    let data = stage_states(response)
+    | if (is_empty(data)):
+        "No stage states found."
+      else:
+        do
+          let header = "| StageName | Status |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(s):
+                      let status = if (is_none(s["latestExecution"])): "" else: _aws_to_cell(s["latestExecution"]["status"])
+                      | "| " + _aws_to_cell(s["stageName"]) +
+                        " | " + status + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module codebuild:
+  # Extract project names from a ListProjects response.
+  def project_names(response):
+    if (is_none(response["projects"])): [] else: response["projects"]
+  end
+
+  # Get the number of build projects.
+  def project_count(response):
+    len(project_names(response))
+  end
+
+  # Convert a ListProjects response to a Markdown table.
+  def project_names_to_markdown_table(response):
+    let data = project_names(response)
+    | if (is_empty(data)):
+        "No projects found."
+      else:
+        do
+          let header = "| ProjectName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract builds from a BatchGetBuilds response.
+  def builds(response):
+    if (is_none(response["builds"])): [] else: response["builds"]
+  end
+
+  # Filter builds by status (e.g. "SUCCEEDED", "FAILED", "IN_PROGRESS").
+  def builds_by_status(response, status):
+    filter(builds(response), fn(b): b["buildStatus"] == status;)
+  end
+
+  # Return succeeded builds.
+  def succeeded_builds(response):
+    builds_by_status(response, "SUCCEEDED")
+  end
+
+  # Return failed builds.
+  def failed_builds(response):
+    builds_by_status(response, "FAILED")
+  end
+
+  # Convert a BatchGetBuilds response to a Markdown table.
+  def builds_to_markdown_table(response):
+    let data = builds(response)
+    | if (is_empty(data)):
+        "No builds found."
+      else:
+        do
+          let header = "| Id | ProjectName | Status | StartTime | EndTime |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(b):
+                      "| " + _aws_to_cell(b["id"]) +
+                        " | " + _aws_to_cell(b["projectName"]) +
+                        " | " + _aws_to_cell(b["buildStatus"]) +
+                        " | " + _aws_to_cell(b["startTime"]) +
+                        " | " + _aws_to_cell(b["endTime"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module waf:
+  # Extract Web ACLs from a ListWebACLs response (WAFv2).
+  def web_acls(response):
+    if (is_none(response["WebACLs"])): [] else: response["WebACLs"]
+  end
+
+  # Get all Web ACL names.
+  def web_acl_names(response):
+    map(web_acls(response), fn(a): a["Name"];)
+  end
+
+  # Convert a ListWebACLs response to a Markdown table.
+  def web_acls_to_markdown_table(response):
+    let data = web_acls(response)
+    | if (is_empty(data)):
+        "No Web ACLs found."
+      else:
+        do
+          let header = "| Name | Id | Description | ARN |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(a):
+                      "| " + _aws_to_cell(a["Name"]) +
+                        " | " + _aws_to_cell(a["Id"]) +
+                        " | " + _aws_to_cell(a["Description"]) +
+                        " | " + _aws_to_cell(a["ARN"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module glue:
+  # Extract ETL jobs from a GetJobs response.
+  def jobs(response):
+    if (is_none(response["Jobs"])): [] else: response["Jobs"]
+  end
+
+  # Get all job names.
+  def job_names(response):
+    map(jobs(response), fn(j): j["Name"];)
+  end
+
+  # Convert a GetJobs response to a Markdown table.
+  def jobs_to_markdown_table(response):
+    let data = jobs(response)
+    | if (is_empty(data)):
+        "No jobs found."
+      else:
+        do
+          let header = "| Name | Role | MaxRetries | Timeout |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(j):
+                      "| " + _aws_to_cell(j["Name"]) +
+                        " | " + _aws_to_cell(j["Role"]) +
+                        " | " + _aws_to_cell(j["MaxRetries"]) +
+                        " | " + _aws_to_cell(j["Timeout"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract crawlers from a GetCrawlers response.
+  def crawlers(response):
+    if (is_none(response["Crawlers"])): [] else: response["Crawlers"]
+  end
+
+  # Get all crawler names.
+  def crawler_names(response):
+    map(crawlers(response), fn(c): c["Name"];)
+  end
+
+  # Filter crawlers in READY state.
+  def ready_crawlers(response):
+    filter(crawlers(response), fn(c): c["State"] == "READY";)
+  end
+
+  # Filter crawlers in RUNNING state.
+  def running_crawlers(response):
+    filter(crawlers(response), fn(c): c["State"] == "RUNNING";)
+  end
+
+  # Convert a GetCrawlers response to a Markdown table.
+  def crawlers_to_markdown_table(response):
+    let data = crawlers(response)
+    | if (is_empty(data)):
+        "No crawlers found."
+      else:
+        do
+          let header = "| Name | State | Role | LastStatus |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(c):
+                      let last_status = if (is_none(c["LastCrawl"])): "" else: _aws_to_cell(c["LastCrawl"]["Status"])
+                      | "| " + _aws_to_cell(c["Name"]) +
+                        " | " + _aws_to_cell(c["State"]) +
+                        " | " + _aws_to_cell(c["Role"]) +
+                        " | " + last_status + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module autoscaling:
+  # Extract Auto Scaling groups from a DescribeAutoScalingGroups response.
+  def groups(response):
+    if (is_none(response["AutoScalingGroups"])): [] else: response["AutoScalingGroups"]
+  end
+
+  # Get all group names.
+  def group_names(response):
+    map(groups(response), fn(g): g["AutoScalingGroupName"];)
+  end
+
+  # Filter groups by minimum desired capacity.
+  def groups_by_min_desired(response, min):
+    filter(groups(response), fn(g): g["DesiredCapacity"] >= min;)
+  end
+
+  # Convert a DescribeAutoScalingGroups response to a Markdown table.
+  def groups_to_markdown_table(response):
+    let data = groups(response)
+    | if (is_empty(data)):
+        "No Auto Scaling groups found."
+      else:
+        do
+          let header = "| GroupName | MinSize | MaxSize | DesiredCapacity | Instances |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(g):
+                      let instance_count = if (is_none(g["Instances"])): 0 else: len(g["Instances"])
+                      | "| " + _aws_to_cell(g["AutoScalingGroupName"]) +
+                        " | " + _aws_to_cell(g["MinSize"]) +
+                        " | " + _aws_to_cell(g["MaxSize"]) +
+                        " | " + _aws_to_cell(g["DesiredCapacity"]) +
+                        " | " + _aws_to_cell(instance_count) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract scaling policies from a DescribePolicies response.
+  def scaling_policies(response):
+    if (is_none(response["ScalingPolicies"])): [] else: response["ScalingPolicies"]
+  end
+
+  # Filter policies by type (e.g. "TargetTrackingScaling", "StepScaling").
+  def policies_by_type(response, type):
+    filter(scaling_policies(response), fn(p): p["PolicyType"] == type;)
+  end
+
+  # Get all policy names.
+  def policy_names(response):
+    map(scaling_policies(response), fn(p): p["PolicyName"];)
+  end
+
+  # Convert a DescribePolicies response to a Markdown table.
+  def scaling_policies_to_markdown_table(response):
+    let data = scaling_policies(response)
+    | if (is_empty(data)):
+        "No scaling policies found."
+      else:
+        do
+          let header = "| PolicyName | PolicyType | AutoScalingGroupName |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["PolicyName"]) +
+                        " | " + _aws_to_cell(p["PolicyType"]) +
+                        " | " + _aws_to_cell(p["AutoScalingGroupName"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module firehose:
+  # Extract delivery stream names from a ListDeliveryStreams response.
+  def stream_names(response):
+    if (is_none(response["DeliveryStreamNames"])): [] else: response["DeliveryStreamNames"]
+  end
+
+  # Get the number of delivery streams.
+  def stream_count(response):
+    len(stream_names(response))
+  end
+
+  # Convert a ListDeliveryStreams response to a Markdown table.
+  def stream_names_to_markdown_table(response):
+    let data = stream_names(response)
+    | if (is_empty(data)):
+        "No delivery streams found."
+      else:
+        do
+          let header = "| DeliveryStreamName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract the stream description from a DescribeDeliveryStream response.
+  def stream_description(response):
+    response["DeliveryStreamDescription"]
+  end
+
+  # Get the stream status from a DescribeDeliveryStream response.
+  def stream_status(response):
+    let desc = stream_description(response)
+    | if (is_none(desc)): None else: desc["DeliveryStreamStatus"]
+  end
+
+  # Convert a DescribeDeliveryStream response to a Markdown table.
+  def stream_info_to_markdown_table(response):
+    let desc = stream_description(response)
+    | if (is_none(desc)):
+        "No delivery stream found."
+      else:
+        do
+          let header = "| StreamName | Status | Type | Destinations |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let dest_count = if (is_none(desc["Destinations"])): 0 else: len(desc["Destinations"])
+          | let row = "| " + _aws_to_cell(desc["DeliveryStreamName"]) +
+            " | " + _aws_to_cell(desc["DeliveryStreamStatus"]) +
+            " | " + _aws_to_cell(desc["DeliveryStreamType"]) +
+            " | " + _aws_to_cell(dest_count) + " |"
+          | _aws_table(header, sep, [row])
+        end
+  end
+end
+
+|
+
+module athena:
+  # Extract workgroups from a ListWorkGroups response.
+  def workgroups(response):
+    if (is_none(response["WorkGroups"])): [] else: response["WorkGroups"]
+  end
+
+  # Get all workgroup names.
+  def workgroup_names(response):
+    map(workgroups(response), fn(w): w["Name"];)
+  end
+
+  # Filter enabled workgroups.
+  def enabled_workgroups(response):
+    filter(workgroups(response), fn(w): w["State"] == "ENABLED";)
+  end
+
+  # Convert a ListWorkGroups response to a Markdown table.
+  def workgroups_to_markdown_table(response):
+    let data = workgroups(response)
+    | if (is_empty(data)):
+        "No workgroups found."
+      else:
+        do
+          let header = "| Name | State | Description |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(w):
+                      "| " + _aws_to_cell(w["Name"]) +
+                        " | " + _aws_to_cell(w["State"]) +
+                        " | " + _aws_to_cell(w["Description"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract query executions from a BatchGetQueryExecution response.
+  def query_executions(response):
+    if (is_none(response["QueryExecutions"])): [] else: response["QueryExecutions"]
+  end
+
+  # Filter query executions by state (e.g. "SUCCEEDED", "FAILED", "RUNNING").
+  def executions_by_state(response, state):
+    filter(query_executions(response), fn(q):
+      !is_none(q["Status"]) && q["Status"]["State"] == state;
+    )
+  end
+
+  # Return succeeded query executions.
+  def succeeded_executions(response):
+    executions_by_state(response, "SUCCEEDED")
+  end
+
+  # Return failed query executions.
+  def failed_executions(response):
+    executions_by_state(response, "FAILED")
+  end
+
+  # Convert a BatchGetQueryExecution response to a Markdown table.
+  def query_executions_to_markdown_table(response):
+    let data = query_executions(response)
+    | if (is_empty(data)):
+        "No query executions found."
+      else:
+        do
+          let header = "| QueryExecutionId | State | Workgroup | Database |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(q):
+                      let state = if (is_none(q["Status"])): "" else: _aws_to_cell(q["Status"]["State"])
+                      | let db = if (is_none(q["QueryExecutionContext"]) || is_none(q["QueryExecutionContext"]["Database"])): "" else: _aws_to_cell(q["QueryExecutionContext"]["Database"])
+                      | "| " + _aws_to_cell(q["QueryExecutionId"]) +
+                        " | " + state +
+                        " | " + _aws_to_cell(q["WorkGroup"]) +
+                        " | " + db + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module codecommit:
+  # Extract repositories from a ListRepositories response.
+  def repositories(response):
+    if (is_none(response["repositories"])): [] else: response["repositories"]
+  end
+
+  # Get all repository names.
+  def repository_names(response):
+    map(repositories(response), fn(r): r["repositoryName"];)
+  end
+
+  # Convert a ListRepositories response to a Markdown table.
+  def repositories_to_markdown_table(response):
+    let data = repositories(response)
+    | if (is_empty(data)):
+        "No repositories found."
+      else:
+        do
+          let header = "| RepositoryName | RepositoryId |"
+          | let sep = "| --- | --- |"
+          | let rows = map(data, fn(r):
+                      "| " + _aws_to_cell(r["repositoryName"]) +
+                        " | " + _aws_to_cell(r["repositoryId"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract branches from a ListBranches response.
+  def branches(response):
+    if (is_none(response["branches"])): [] else: response["branches"]
+  end
+
+  # Get the branch count.
+  def branch_count(response):
+    len(branches(response))
+  end
+
+  # Convert a ListBranches response to a Markdown table.
+  def branches_to_markdown_table(response):
+    let data = branches(response)
+    | if (is_empty(data)):
+        "No branches found."
+      else:
+        do
+          let header = "| BranchName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module codedeploy:
+  # Extract application names from a ListApplications response.
+  def application_names(response):
+    if (is_none(response["applications"])): [] else: response["applications"]
+  end
+
+  # Get the application count.
+  def application_count(response):
+    len(application_names(response))
+  end
+
+  # Convert a ListApplications response to a Markdown table.
+  def application_names_to_markdown_table(response):
+    let data = application_names(response)
+    | if (is_empty(data)):
+        "No applications found."
+      else:
+        do
+          let header = "| ApplicationName |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(name): "| " + name + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract deployments from a BatchGetDeployments response.
+  def deployments(response):
+    if (is_none(response["deploymentsInfo"])): [] else: response["deploymentsInfo"]
+  end
+
+  # Filter deployments by status (e.g. "Succeeded", "Failed", "InProgress").
+  def deployments_by_status(response, status):
+    filter(deployments(response), fn(d): d["status"] == status;)
+  end
+
+  # Return succeeded deployments.
+  def succeeded_deployments(response):
+    deployments_by_status(response, "Succeeded")
+  end
+
+  # Return failed deployments.
+  def failed_deployments(response):
+    deployments_by_status(response, "Failed")
+  end
+
+  # Convert a BatchGetDeployments response to a Markdown table.
+  def deployments_to_markdown_table(response):
+    let data = deployments(response)
+    | if (is_empty(data)):
+        "No deployments found."
+      else:
+        do
+          let header = "| DeploymentId | ApplicationName | DeploymentGroup | Status | CreateTime |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(d):
+                      "| " + _aws_to_cell(d["deploymentId"]) +
+                        " | " + _aws_to_cell(d["applicationName"]) +
+                        " | " + _aws_to_cell(d["deploymentGroupName"]) +
+                        " | " + _aws_to_cell(d["status"]) +
+                        " | " + _aws_to_cell(d["createTime"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module batch:
+  # Extract job queues from a DescribeJobQueues response.
+  def job_queues(response):
+    if (is_none(response["jobQueues"])): [] else: response["jobQueues"]
+  end
+
+  # Get all job queue names.
+  def queue_names(response):
+    map(job_queues(response), fn(q): q["jobQueueName"];)
+  end
+
+  # Filter enabled job queues.
+  def enabled_queues(response):
+    filter(job_queues(response), fn(q): q["state"] == "ENABLED";)
+  end
+
+  # Convert a DescribeJobQueues response to a Markdown table.
+  def job_queues_to_markdown_table(response):
+    let data = job_queues(response)
+    | if (is_empty(data)):
+        "No job queues found."
+      else:
+        do
+          let header = "| JobQueueName | State | Status | Priority |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(q):
+                      "| " + _aws_to_cell(q["jobQueueName"]) +
+                        " | " + _aws_to_cell(q["state"]) +
+                        " | " + _aws_to_cell(q["status"]) +
+                        " | " + _aws_to_cell(q["priority"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract compute environments from a DescribeComputeEnvironments response.
+  def compute_environments(response):
+    if (is_none(response["computeEnvironments"])): [] else: response["computeEnvironments"]
+  end
+
+  # Get all compute environment names.
+  def environment_names(response):
+    map(compute_environments(response), fn(e): e["computeEnvironmentName"];)
+  end
+
+  # Filter enabled compute environments.
+  def enabled_environments(response):
+    filter(compute_environments(response), fn(e): e["state"] == "ENABLED";)
+  end
+
+  # Convert a DescribeComputeEnvironments response to a Markdown table.
+  def compute_environments_to_markdown_table(response):
+    let data = compute_environments(response)
+    | if (is_empty(data)):
+        "No compute environments found."
+      else:
+        do
+          let header = "| Name | Type | State | Status |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(e):
+                      "| " + _aws_to_cell(e["computeEnvironmentName"]) +
+                        " | " + _aws_to_cell(e["type"]) +
+                        " | " + _aws_to_cell(e["state"]) +
+                        " | " + _aws_to_cell(e["status"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract job summaries from a ListJobs response.
+  def jobs(response):
+    if (is_none(response["jobSummaryList"])): [] else: response["jobSummaryList"]
+  end
+
+  # Filter jobs by status (e.g. "SUCCEEDED", "FAILED", "RUNNING").
+  def jobs_by_status(response, status):
+    filter(jobs(response), fn(j): j["status"] == status;)
+  end
+
+  # Return running jobs.
+  def running_jobs(response):
+    jobs_by_status(response, "RUNNING")
+  end
+
+  # Return failed jobs.
+  def failed_jobs(response):
+    jobs_by_status(response, "FAILED")
+  end
+
+  # Convert a ListJobs response to a Markdown table.
+  def jobs_to_markdown_table(response):
+    let data = jobs(response)
+    | if (is_empty(data)):
+        "No jobs found."
+      else:
+        do
+          let header = "| JobId | JobName | Status |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(j):
+                      "| " + _aws_to_cell(j["jobId"]) +
+                        " | " + _aws_to_cell(j["jobName"]) +
+                        " | " + _aws_to_cell(j["status"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module guardduty:
+  # Extract detector IDs from a ListDetectors response.
+  def detector_ids(response):
+    if (is_none(response["DetectorIds"])): [] else: response["DetectorIds"]
+  end
+
+  # Get the number of detectors.
+  def detector_count(response):
+    len(detector_ids(response))
+  end
+
+  # Convert a ListDetectors response to a Markdown table.
+  def detector_ids_to_markdown_table(response):
+    let data = detector_ids(response)
+    | if (is_empty(data)):
+        "No detectors found."
+      else:
+        do
+          let header = "| DetectorId |"
+          | let sep = "| --- |"
+          | let rows = map(data, fn(id): "| " + id + " |" end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract findings from a GetFindings response.
+  def findings(response):
+    if (is_none(response["Findings"])): [] else: response["Findings"]
+  end
+
+  # Filter findings by minimum severity (0-10 scale).
+  def findings_above_severity(response, threshold):
+    filter(findings(response), fn(f): f["Severity"] >= threshold;)
+  end
+
+  # Return high-severity findings (severity >= 7.0).
+  def high_severity_findings(response):
+    findings_above_severity(response, 7.0)
+  end
+
+  # Return medium-severity findings (4.0 <= severity < 7.0).
+  def medium_severity_findings(response):
+    filter(findings(response), fn(f): f["Severity"] >= 4.0 && f["Severity"] < 7.0;)
+  end
+
+  # Convert a GetFindings response to a Markdown table.
+  def findings_to_markdown_table(response):
+    let data = findings(response)
+    | if (is_empty(data)):
+        "No findings found."
+      else:
+        do
+          let header = "| Id | Type | Severity | Title | Region |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(f):
+                      "| " + _aws_to_cell(f["Id"]) +
+                        " | " + _aws_to_cell(f["Type"]) +
+                        " | " + _aws_to_cell(f["Severity"]) +
+                        " | " + _aws_to_cell(f["Title"]) +
+                        " | " + _aws_to_cell(f["Region"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module backup:
+  # Extract backup plans from a ListBackupPlans response.
+  def backup_plans(response):
+    if (is_none(response["BackupPlansList"])): [] else: response["BackupPlansList"]
+  end
+
+  # Get all backup plan names.
+  def plan_names(response):
+    map(backup_plans(response), fn(p): p["BackupPlanName"];)
+  end
+
+  # Convert a ListBackupPlans response to a Markdown table.
+  def backup_plans_to_markdown_table(response):
+    let data = backup_plans(response)
+    | if (is_empty(data)):
+        "No backup plans found."
+      else:
+        do
+          let header = "| BackupPlanName | BackupPlanId | CreationDate | LastExecutionDate |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(p):
+                      "| " + _aws_to_cell(p["BackupPlanName"]) +
+                        " | " + _aws_to_cell(p["BackupPlanId"]) +
+                        " | " + _aws_to_cell(p["CreationDate"]) +
+                        " | " + _aws_to_cell(p["LastExecutionDate"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract backup jobs from a ListBackupJobs response.
+  def backup_jobs(response):
+    if (is_none(response["BackupJobs"])): [] else: response["BackupJobs"]
+  end
+
+  # Filter backup jobs by state (e.g. "COMPLETED", "FAILED", "RUNNING").
+  def jobs_by_state(response, state):
+    filter(backup_jobs(response), fn(j): j["State"] == state;)
+  end
+
+  # Return completed backup jobs.
+  def completed_jobs(response):
+    jobs_by_state(response, "COMPLETED")
+  end
+
+  # Return failed backup jobs.
+  def failed_jobs(response):
+    jobs_by_state(response, "FAILED")
+  end
+
+  # Convert a ListBackupJobs response to a Markdown table.
+  def backup_jobs_to_markdown_table(response):
+    let data = backup_jobs(response)
+    | if (is_empty(data)):
+        "No backup jobs found."
+      else:
+        do
+          let header = "| BackupJobId | VaultName | State | ResourceArn | SizeBytes |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(j):
+                      "| " + _aws_to_cell(j["BackupJobId"]) +
+                        " | " + _aws_to_cell(j["BackupVaultName"]) +
+                        " | " + _aws_to_cell(j["State"]) +
+                        " | " + _aws_to_cell(j["ResourceArn"]) +
+                        " | " + _aws_to_cell(j["BackupSizeInBytes"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module efs:
+  # Extract file systems from a DescribeFileSystems response.
+  def file_systems(response):
+    if (is_none(response["FileSystems"])): [] else: response["FileSystems"]
+  end
+
+  # Get all file system IDs.
+  def file_system_ids(response):
+    map(file_systems(response), fn(fs): fs["FileSystemId"];)
+  end
+
+  # Filter available file systems.
+  def available_file_systems(response):
+    filter(file_systems(response), fn(fs): fs["LifeCycleState"] == "available";)
+  end
+
+  # Filter encrypted file systems.
+  def encrypted_file_systems(response):
+    filter(file_systems(response), fn(fs): fs["Encrypted"] == true;)
+  end
+
+  # Convert a DescribeFileSystems response to a Markdown table.
+  def file_systems_to_markdown_table(response):
+    let data = file_systems(response)
+    | if (is_empty(data)):
+        "No file systems found."
+      else:
+        do
+          let header = "| FileSystemId | Name | State | MountTargets | PerformanceMode | Encrypted |"
+          | let sep = "| --- | --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(fs):
+                      "| " + _aws_to_cell(fs["FileSystemId"]) +
+                        " | " + _aws_to_cell(fs["Name"]) +
+                        " | " + _aws_to_cell(fs["LifeCycleState"]) +
+                        " | " + _aws_to_cell(fs["NumberOfMountTargets"]) +
+                        " | " + _aws_to_cell(fs["PerformanceMode"]) +
+                        " | " + _aws_to_cell(fs["Encrypted"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract mount targets from a DescribeMountTargets response.
+  def mount_targets(response):
+    if (is_none(response["MountTargets"])): [] else: response["MountTargets"]
+  end
+
+  # Filter available mount targets.
+  def available_mount_targets(response):
+    filter(mount_targets(response), fn(mt): mt["LifeCycleState"] == "available";)
+  end
+
+  # Convert a DescribeMountTargets response to a Markdown table.
+  def mount_targets_to_markdown_table(response):
+    let data = mount_targets(response)
+    | if (is_empty(data)):
+        "No mount targets found."
+      else:
+        do
+          let header = "| MountTargetId | FileSystemId | SubnetId | State | IpAddress |"
+          | let sep = "| --- | --- | --- | --- | --- |"
+          | let rows = map(data, fn(mt):
+                      "| " + _aws_to_cell(mt["MountTargetId"]) +
+                        " | " + _aws_to_cell(mt["FileSystemId"]) +
+                        " | " + _aws_to_cell(mt["SubnetId"]) +
+                        " | " + _aws_to_cell(mt["LifeCycleState"]) +
+                        " | " + _aws_to_cell(mt["IpAddress"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+end
+
+|
+
+module sagemaker:
+  # Extract training jobs from a ListTrainingJobs response.
+  def training_jobs(response):
+    if (is_none(response["TrainingJobSummaries"])): [] else: response["TrainingJobSummaries"]
+  end
+
+  # Filter training jobs by status (e.g. "Completed", "Failed", "InProgress").
+  def training_jobs_by_status(response, status):
+    filter(training_jobs(response), fn(j): j["TrainingJobStatus"] == status;)
+  end
+
+  # Return completed training jobs.
+  def completed_training_jobs(response):
+    training_jobs_by_status(response, "Completed")
+  end
+
+  # Get all training job names.
+  def training_job_names(response):
+    map(training_jobs(response), fn(j): j["TrainingJobName"];)
+  end
+
+  # Convert a ListTrainingJobs response to a Markdown table.
+  def training_jobs_to_markdown_table(response):
+    let data = training_jobs(response)
+    | if (is_empty(data)):
+        "No training jobs found."
+      else:
+        do
+          let header = "| TrainingJobName | Status | CreationTime | LastModifiedTime |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(j):
+                      "| " + _aws_to_cell(j["TrainingJobName"]) +
+                        " | " + _aws_to_cell(j["TrainingJobStatus"]) +
+                        " | " + _aws_to_cell(j["CreationTime"]) +
+                        " | " + _aws_to_cell(j["LastModifiedTime"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract models from a ListModels response.
+  def models(response):
+    if (is_none(response["Models"])): [] else: response["Models"]
+  end
+
+  # Get all model names.
+  def model_names(response):
+    map(models(response), fn(m): m["ModelName"];)
+  end
+
+  # Convert a ListModels response to a Markdown table.
+  def models_to_markdown_table(response):
+    let data = models(response)
+    | if (is_empty(data)):
+        "No models found."
+      else:
+        do
+          let header = "| ModelName | ModelArn | CreationTime |"
+          | let sep = "| --- | --- | --- |"
+          | let rows = map(data, fn(m):
+                      "| " + _aws_to_cell(m["ModelName"]) +
+                        " | " + _aws_to_cell(m["ModelArn"]) +
+                        " | " + _aws_to_cell(m["CreationTime"]) + " |"
+                    end)
+          | _aws_table(header, sep, rows)
+        end
+  end
+
+  # Extract endpoints from a ListEndpoints response.
+  def endpoints(response):
+    if (is_none(response["Endpoints"])): [] else: response["Endpoints"]
+  end
+
+  # Filter endpoints by status (e.g. "InService", "Creating", "Failed").
+  def endpoints_by_status(response, status):
+    filter(endpoints(response), fn(e): e["EndpointStatus"] == status;)
+  end
+
+  # Return in-service endpoints.
+  def in_service_endpoints(response):
+    endpoints_by_status(response, "InService")
+  end
+
+  # Get all endpoint names.
+  def endpoint_names(response):
+    map(endpoints(response), fn(e): e["EndpointName"];)
+  end
+
+  # Convert a ListEndpoints response to a Markdown table.
+  def endpoints_to_markdown_table(response):
+    let data = endpoints(response)
+    | if (is_empty(data)):
+        "No endpoints found."
+      else:
+        do
+          let header = "| EndpointName | Status | CreationTime | LastModifiedTime |"
+          | let sep = "| --- | --- | --- | --- |"
+          | let rows = map(data, fn(e):
+                      "| " + _aws_to_cell(e["EndpointName"]) +
+                        " | " + _aws_to_cell(e["EndpointStatus"]) +
+                        " | " + _aws_to_cell(e["CreationTime"]) +
+                        " | " + _aws_to_cell(e["LastModifiedTime"]) + " |"
                     end)
           | _aws_table(header, sep, rows)
         end
