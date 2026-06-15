@@ -1440,3 +1440,3062 @@ def test_r53_record_sets_to_markdown_table_empty():
   | let result = aws::route53::record_sets_to_markdown_table(response)
   | assert_eq(result, "No record sets found.")
 end
+
+# =========================================================================
+# EKS Tests — ListClusters
+# =========================================================================
+
+| let eks_list_clusters_json = "{\"clusters\":[\"prod-cluster\",\"staging-cluster\",\"dev-cluster\"]}" |
+
+def test_eks_cluster_names():
+  let response = json::json_parse(eks_list_clusters_json)
+  | let names = aws::eks::cluster_names(response)
+  | assert_eq(names, ["prod-cluster", "staging-cluster", "dev-cluster"])
+end
+
+def test_eks_cluster_count():
+  let response = json::json_parse(eks_list_clusters_json)
+  | let count = aws::eks::cluster_count(response)
+  | assert_eq(count, 3)
+end
+
+def test_eks_cluster_names_empty():
+  let response = json::json_parse("{\"clusters\":[]}")
+  | let result = aws::eks::cluster_names(response)
+  | assert_empty(result)
+end
+
+def test_eks_cluster_names_null():
+  let response = json::json_parse("{}")
+  | let result = aws::eks::cluster_names(response)
+  | assert_empty(result)
+end
+
+def test_eks_cluster_names_to_markdown_table():
+  let response = json::json_parse(eks_list_clusters_json)
+  | let result = aws::eks::cluster_names_to_markdown_table(response)
+  | assert(contains(result, "| ClusterName |"))
+  | assert(contains(result, "prod-cluster"))
+  | assert(contains(result, "staging-cluster"))
+  | assert(contains(result, "dev-cluster"))
+end
+
+def test_eks_cluster_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"clusters\":[]}")
+  | let result = aws::eks::cluster_names_to_markdown_table(response)
+  | assert_eq(result, "No clusters found.")
+end
+
+# =========================================================================
+# EKS Tests — DescribeCluster
+# =========================================================================
+
+| let eks_describe_cluster_json = "{\"cluster\":{\"name\":\"prod-cluster\",\"arn\":\"arn:aws:eks:us-east-1:123456789012:cluster/prod-cluster\",\"status\":\"ACTIVE\",\"version\":\"1.29\",\"endpoint\":\"https://ABCD1234.gr7.us-east-1.eks.amazonaws.com\",\"roleArn\":\"arn:aws:iam::123456789012:role/eks-role\"}}" |
+
+def test_eks_cluster_status():
+  let response = json::json_parse(eks_describe_cluster_json)
+  | let status = aws::eks::cluster_status(response)
+  | assert_eq(status, "ACTIVE")
+end
+
+def test_eks_cluster_version():
+  let response = json::json_parse(eks_describe_cluster_json)
+  | let version = aws::eks::cluster_version(response)
+  | assert_eq(version, "1.29")
+end
+
+def test_eks_cluster_info_to_markdown_table():
+  let response = json::json_parse(eks_describe_cluster_json)
+  | let result = aws::eks::cluster_info_to_markdown_table(response)
+  | assert(contains(result, "| Name | Status | Version | Endpoint |"))
+  | assert(contains(result, "prod-cluster"))
+  | assert(contains(result, "ACTIVE"))
+  | assert(contains(result, "1.29"))
+end
+
+def test_eks_cluster_info_to_markdown_table_null():
+  let response = json::json_parse("{}")
+  | let result = aws::eks::cluster_info_to_markdown_table(response)
+  | assert_eq(result, "No cluster found.")
+end
+
+# =========================================================================
+# EKS Tests — ListNodegroups / DescribeNodegroup
+# =========================================================================
+
+| let eks_list_nodegroups_json = "{\"nodegroups\":[\"ng-app\",\"ng-worker\"]}" |
+
+def test_eks_nodegroup_names():
+  let response = json::json_parse(eks_list_nodegroups_json)
+  | let names = aws::eks::nodegroup_names(response)
+  | assert_eq(names, ["ng-app", "ng-worker"])
+end
+
+def test_eks_nodegroup_names_to_markdown_table():
+  let response = json::json_parse(eks_list_nodegroups_json)
+  | let result = aws::eks::nodegroup_names_to_markdown_table(response)
+  | assert(contains(result, "| NodegroupName |"))
+  | assert(contains(result, "ng-app"))
+  | assert(contains(result, "ng-worker"))
+end
+
+def test_eks_nodegroup_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"nodegroups\":[]}")
+  | let result = aws::eks::nodegroup_names_to_markdown_table(response)
+  | assert_eq(result, "No nodegroups found.")
+end
+
+| let eks_describe_nodegroup_json = "{\"nodegroup\":{\"nodegroupName\":\"ng-app\",\"clusterName\":\"prod-cluster\",\"status\":\"ACTIVE\",\"instanceTypes\":[\"m5.large\"],\"scalingConfig\":{\"minSize\":2,\"maxSize\":10,\"desiredSize\":4}}}" |
+
+def test_eks_nodegroup_info_to_markdown_table():
+  let response = json::json_parse(eks_describe_nodegroup_json)
+  | let result = aws::eks::nodegroup_info_to_markdown_table(response)
+  | assert(contains(result, "| NodegroupName | Status | InstanceType | DesiredSize | MinSize | MaxSize |"))
+  | assert(contains(result, "ng-app"))
+  | assert(contains(result, "ACTIVE"))
+  | assert(contains(result, "m5.large"))
+  | assert(contains(result, "4"))
+  | assert(contains(result, "2"))
+  | assert(contains(result, "10"))
+end
+
+def test_eks_nodegroup_info_to_markdown_table_null():
+  let response = json::json_parse("{}")
+  | let result = aws::eks::nodegroup_info_to_markdown_table(response)
+  | assert_eq(result, "No nodegroup found.")
+end
+
+# =========================================================================
+# Kinesis Tests — ListStreams
+# =========================================================================
+
+| let kinesis_list_streams_json = "{\"StreamNames\":[\"order-events\",\"user-activity\",\"audit-log\"],\"HasMoreStreams\":false}" |
+
+def test_kinesis_stream_names():
+  let response = json::json_parse(kinesis_list_streams_json)
+  | let names = aws::kinesis::stream_names(response)
+  | assert_eq(names, ["order-events", "user-activity", "audit-log"])
+end
+
+def test_kinesis_stream_count():
+  let response = json::json_parse(kinesis_list_streams_json)
+  | let count = aws::kinesis::stream_count(response)
+  | assert_eq(count, 3)
+end
+
+def test_kinesis_stream_names_empty():
+  let response = json::json_parse("{\"StreamNames\":[]}")
+  | let result = aws::kinesis::stream_names(response)
+  | assert_empty(result)
+end
+
+def test_kinesis_stream_names_null():
+  let response = json::json_parse("{}")
+  | let result = aws::kinesis::stream_names(response)
+  | assert_empty(result)
+end
+
+def test_kinesis_stream_names_to_markdown_table():
+  let response = json::json_parse(kinesis_list_streams_json)
+  | let result = aws::kinesis::stream_names_to_markdown_table(response)
+  | assert(contains(result, "| StreamName |"))
+  | assert(contains(result, "order-events"))
+  | assert(contains(result, "user-activity"))
+  | assert(contains(result, "audit-log"))
+end
+
+def test_kinesis_stream_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"StreamNames\":[]}")
+  | let result = aws::kinesis::stream_names_to_markdown_table(response)
+  | assert_eq(result, "No streams found.")
+end
+
+# =========================================================================
+# Kinesis Tests — DescribeStream
+# =========================================================================
+
+| let kinesis_describe_stream_json = "{\"StreamDescription\":{\"StreamName\":\"order-events\",\"StreamArn\":\"arn:aws:kinesis:us-east-1:123456789012:stream/order-events\",\"StreamStatus\":\"ACTIVE\",\"RetentionPeriodHours\":24,\"Shards\":[{\"ShardId\":\"shardId-000000000000\",\"SequenceNumberRange\":{}},{\"ShardId\":\"shardId-000000000001\",\"SequenceNumberRange\":{}}]}}" |
+
+def test_kinesis_stream_status():
+  let response = json::json_parse(kinesis_describe_stream_json)
+  | let status = aws::kinesis::stream_status(response)
+  | assert_eq(status, "ACTIVE")
+end
+
+def test_kinesis_shard_count():
+  let response = json::json_parse(kinesis_describe_stream_json)
+  | let count = aws::kinesis::shard_count(response)
+  | assert_eq(count, 2)
+end
+
+def test_kinesis_shards():
+  let response = json::json_parse(kinesis_describe_stream_json)
+  | let result = aws::kinesis::shards(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_kinesis_stream_info_to_markdown_table():
+  let response = json::json_parse(kinesis_describe_stream_json)
+  | let result = aws::kinesis::stream_info_to_markdown_table(response)
+  | assert(contains(result, "| StreamName | Status | ShardCount | RetentionPeriodHours |"))
+  | assert(contains(result, "order-events"))
+  | assert(contains(result, "ACTIVE"))
+  | assert(contains(result, "2"))
+  | assert(contains(result, "24"))
+end
+
+def test_kinesis_stream_info_to_markdown_table_null():
+  let response = json::json_parse("{}")
+  | let result = aws::kinesis::stream_info_to_markdown_table(response)
+  | assert_eq(result, "No stream found.")
+end
+
+# =========================================================================
+# ElastiCache Tests — CacheClusters
+# =========================================================================
+
+| let ec_describe_clusters_json = "{\"CacheClusters\":[{\"CacheClusterId\":\"prod-redis-001\",\"Engine\":\"redis\",\"EngineVersion\":\"7.0.12\",\"CacheClusterStatus\":\"available\",\"CacheNodeType\":\"cache.r6g.large\",\"NumCacheNodes\":1},{\"CacheClusterId\":\"prod-memcached-001\",\"Engine\":\"memcached\",\"EngineVersion\":\"1.6.22\",\"CacheClusterStatus\":\"available\",\"CacheNodeType\":\"cache.t3.medium\",\"NumCacheNodes\":3},{\"CacheClusterId\":\"old-redis-001\",\"Engine\":\"redis\",\"EngineVersion\":\"6.2.7\",\"CacheClusterStatus\":\"deleting\",\"CacheNodeType\":\"cache.t3.micro\",\"NumCacheNodes\":1}]}" |
+
+def test_ec_cache_clusters_count():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let result = aws::elasticache::cache_clusters(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec_cluster_ids():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let ids = aws::elasticache::cluster_ids(response)
+  | assert_eq(ids, ["prod-redis-001", "prod-memcached-001", "old-redis-001"])
+end
+
+def test_ec_available_clusters():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let result = aws::elasticache::available_clusters(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["CacheClusterId"], "prod-redis-001")
+  | assert_eq(result[1]["CacheClusterId"], "prod-memcached-001")
+end
+
+def test_ec_by_engine_redis():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let result = aws::elasticache::by_engine(response, "redis")
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["CacheClusterId"], "prod-redis-001")
+  | assert_eq(result[1]["CacheClusterId"], "old-redis-001")
+end
+
+def test_ec_by_engine_memcached():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let result = aws::elasticache::by_engine(response, "memcached")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["CacheClusterId"], "prod-memcached-001")
+end
+
+def test_ec_cache_clusters_empty():
+  let response = json::json_parse("{\"CacheClusters\":[]}")
+  | let result = aws::elasticache::cache_clusters(response)
+  | assert_empty(result)
+end
+
+def test_ec_cache_clusters_to_markdown_table():
+  let response = json::json_parse(ec_describe_clusters_json)
+  | let result = aws::elasticache::cache_clusters_to_markdown_table(response)
+  | assert(contains(result, "| CacheClusterId | Engine | EngineVersion | Status | NodeType | NumNodes |"))
+  | assert(contains(result, "prod-redis-001"))
+  | assert(contains(result, "redis"))
+  | assert(contains(result, "7.0.12"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "cache.r6g.large"))
+end
+
+def test_ec_cache_clusters_to_markdown_table_empty():
+  let response = json::json_parse("{\"CacheClusters\":[]}")
+  | let result = aws::elasticache::cache_clusters_to_markdown_table(response)
+  | assert_eq(result, "No cache clusters found.")
+end
+
+# =========================================================================
+# ElastiCache Tests — ReplicationGroups
+# =========================================================================
+
+| let ec_describe_rgs_json = "{\"ReplicationGroups\":[{\"ReplicationGroupId\":\"prod-redis-rg\",\"Description\":\"Production Redis replication group\",\"Status\":\"available\",\"MultiAZ\":\"enabled\"},{\"ReplicationGroupId\":\"staging-redis-rg\",\"Description\":\"Staging Redis replication group\",\"Status\":\"available\",\"MultiAZ\":\"disabled\"},{\"ReplicationGroupId\":\"old-rg\",\"Description\":\"Deprecated group\",\"Status\":\"deleting\",\"MultiAZ\":\"disabled\"}]}" |
+
+def test_ec_replication_groups_count():
+  let response = json::json_parse(ec_describe_rgs_json)
+  | let result = aws::elasticache::replication_groups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec_replication_group_ids():
+  let response = json::json_parse(ec_describe_rgs_json)
+  | let ids = aws::elasticache::replication_group_ids(response)
+  | assert_eq(ids, ["prod-redis-rg", "staging-redis-rg", "old-rg"])
+end
+
+def test_ec_available_replication_groups():
+  let response = json::json_parse(ec_describe_rgs_json)
+  | let result = aws::elasticache::available_replication_groups(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["ReplicationGroupId"], "prod-redis-rg")
+  | assert_eq(result[1]["ReplicationGroupId"], "staging-redis-rg")
+end
+
+def test_ec_replication_groups_to_markdown_table():
+  let response = json::json_parse(ec_describe_rgs_json)
+  | let result = aws::elasticache::replication_groups_to_markdown_table(response)
+  | assert(contains(result, "| ReplicationGroupId | Description | Status | MultiAZ |"))
+  | assert(contains(result, "prod-redis-rg"))
+  | assert(contains(result, "Production Redis replication group"))
+  | assert(contains(result, "enabled"))
+end
+
+def test_ec_replication_groups_to_markdown_table_empty():
+  let response = json::json_parse("{\"ReplicationGroups\":[]}")
+  | let result = aws::elasticache::replication_groups_to_markdown_table(response)
+  | assert_eq(result, "No replication groups found.")
+end
+
+# =========================================================================
+# API Gateway Tests — REST APIs (v1)
+# =========================================================================
+
+| let apigw_rest_apis_json = "{\"items\":[{\"id\":\"abc1234def\",\"name\":\"orders-api\",\"description\":\"Order management API\",\"createdDate\":\"2024-01-01T00:00:00Z\",\"apiKeySource\":\"HEADER\"},{\"id\":\"xyz9876ghi\",\"name\":\"users-api\",\"description\":\"User management API\",\"createdDate\":\"2024-02-01T00:00:00Z\",\"apiKeySource\":\"HEADER\"},{\"id\":\"mno5555pqr\",\"name\":\"internal-api\",\"description\":\"Internal services API\",\"createdDate\":\"2024-03-01T00:00:00Z\",\"apiKeySource\":\"AUTHORIZER\"}]}" |
+
+def test_apigw_rest_apis_count():
+  let response = json::json_parse(apigw_rest_apis_json)
+  | let result = aws::apigateway::rest_apis(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_apigw_rest_api_names():
+  let response = json::json_parse(apigw_rest_apis_json)
+  | let names = aws::apigateway::rest_api_names(response)
+  | assert_eq(names, ["orders-api", "users-api", "internal-api"])
+end
+
+def test_apigw_rest_apis_empty():
+  let response = json::json_parse("{\"items\":[]}")
+  | let result = aws::apigateway::rest_apis(response)
+  | assert_empty(result)
+end
+
+def test_apigw_rest_apis_null():
+  let response = json::json_parse("{}")
+  | let result = aws::apigateway::rest_apis(response)
+  | assert_empty(result)
+end
+
+def test_apigw_rest_apis_to_markdown_table():
+  let response = json::json_parse(apigw_rest_apis_json)
+  | let result = aws::apigateway::rest_apis_to_markdown_table(response)
+  | assert(contains(result, "| Name | Id | Description | CreatedDate |"))
+  | assert(contains(result, "orders-api"))
+  | assert(contains(result, "abc1234def"))
+  | assert(contains(result, "Order management API"))
+end
+
+def test_apigw_rest_apis_to_markdown_table_empty():
+  let response = json::json_parse("{\"items\":[]}")
+  | let result = aws::apigateway::rest_apis_to_markdown_table(response)
+  | assert_eq(result, "No REST APIs found.")
+end
+
+# =========================================================================
+# API Gateway Tests — HTTP APIs (v2)
+# =========================================================================
+
+| let apigw_http_apis_json = "{\"Items\":[{\"ApiId\":\"api001\",\"Name\":\"http-orders-api\",\"ProtocolType\":\"HTTP\",\"ApiEndpoint\":\"https://api001.execute-api.us-east-1.amazonaws.com\",\"CreatedDate\":\"2024-01-01T00:00:00Z\"},{\"ApiId\":\"api002\",\"Name\":\"websocket-chat\",\"ProtocolType\":\"WEBSOCKET\",\"ApiEndpoint\":\"wss://api002.execute-api.us-east-1.amazonaws.com\",\"CreatedDate\":\"2024-02-01T00:00:00Z\"},{\"ApiId\":\"api003\",\"Name\":\"http-users-api\",\"ProtocolType\":\"HTTP\",\"ApiEndpoint\":\"https://api003.execute-api.us-east-1.amazonaws.com\",\"CreatedDate\":\"2024-03-01T00:00:00Z\"}]}" |
+
+def test_apigw_http_apis_count():
+  let response = json::json_parse(apigw_http_apis_json)
+  | let result = aws::apigateway::http_apis(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_apigw_http_api_names():
+  let response = json::json_parse(apigw_http_apis_json)
+  | let names = aws::apigateway::http_api_names(response)
+  | assert_eq(names, ["http-orders-api", "websocket-chat", "http-users-api"])
+end
+
+def test_apigw_http_apis_by_protocol_http():
+  let response = json::json_parse(apigw_http_apis_json)
+  | let result = aws::apigateway::http_apis_by_protocol(response, "HTTP")
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Name"], "http-orders-api")
+  | assert_eq(result[1]["Name"], "http-users-api")
+end
+
+def test_apigw_http_apis_by_protocol_websocket():
+  let response = json::json_parse(apigw_http_apis_json)
+  | let result = aws::apigateway::http_apis_by_protocol(response, "WEBSOCKET")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Name"], "websocket-chat")
+end
+
+def test_apigw_http_apis_empty():
+  let response = json::json_parse("{\"Items\":[]}")
+  | let result = aws::apigateway::http_apis(response)
+  | assert_empty(result)
+end
+
+def test_apigw_http_apis_to_markdown_table():
+  let response = json::json_parse(apigw_http_apis_json)
+  | let result = aws::apigateway::http_apis_to_markdown_table(response)
+  | assert(contains(result, "| Name | ApiId | ProtocolType | ApiEndpoint |"))
+  | assert(contains(result, "http-orders-api"))
+  | assert(contains(result, "api001"))
+  | assert(contains(result, "HTTP"))
+  | assert(contains(result, "WEBSOCKET"))
+end
+
+def test_apigw_http_apis_to_markdown_table_empty():
+  let response = json::json_parse("{\"Items\":[]}")
+  | let result = aws::apigateway::http_apis_to_markdown_table(response)
+  | assert_eq(result, "No HTTP APIs found.")
+end
+
+# =========================================================================
+# Step Functions Tests — State Machines
+# =========================================================================
+
+| let sfn_list_state_machines_json = "{\"stateMachines\":[{\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:OrderProcessor\",\"name\":\"OrderProcessor\",\"type\":\"STANDARD\",\"creationDate\":\"2024-01-01T00:00:00Z\"},{\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:EmailSender\",\"name\":\"EmailSender\",\"type\":\"EXPRESS\",\"creationDate\":\"2024-02-01T00:00:00Z\"},{\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:ReportGenerator\",\"name\":\"ReportGenerator\",\"type\":\"STANDARD\",\"creationDate\":\"2024-03-01T00:00:00Z\"}]}" |
+
+def test_sfn_state_machines_count():
+  let response = json::json_parse(sfn_list_state_machines_json)
+  | let result = aws::stepfunctions::state_machines(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_sfn_state_machine_names():
+  let response = json::json_parse(sfn_list_state_machines_json)
+  | let names = aws::stepfunctions::state_machine_names(response)
+  | assert_eq(names, ["OrderProcessor", "EmailSender", "ReportGenerator"])
+end
+
+def test_sfn_by_type_standard():
+  let response = json::json_parse(sfn_list_state_machines_json)
+  | let result = aws::stepfunctions::by_type(response, "STANDARD")
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["name"], "OrderProcessor")
+  | assert_eq(result[1]["name"], "ReportGenerator")
+end
+
+def test_sfn_by_type_express():
+  let response = json::json_parse(sfn_list_state_machines_json)
+  | let result = aws::stepfunctions::by_type(response, "EXPRESS")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["name"], "EmailSender")
+end
+
+def test_sfn_state_machines_empty():
+  let response = json::json_parse("{\"stateMachines\":[]}")
+  | let result = aws::stepfunctions::state_machines(response)
+  | assert_empty(result)
+end
+
+def test_sfn_state_machines_null():
+  let response = json::json_parse("{}")
+  | let result = aws::stepfunctions::state_machines(response)
+  | assert_empty(result)
+end
+
+def test_sfn_state_machines_to_markdown_table():
+  let response = json::json_parse(sfn_list_state_machines_json)
+  | let result = aws::stepfunctions::state_machines_to_markdown_table(response)
+  | assert(contains(result, "| Name | Type | CreationDate |"))
+  | assert(contains(result, "OrderProcessor"))
+  | assert(contains(result, "STANDARD"))
+  | assert(contains(result, "EmailSender"))
+  | assert(contains(result, "EXPRESS"))
+end
+
+def test_sfn_state_machines_to_markdown_table_empty():
+  let response = json::json_parse("{\"stateMachines\":[]}")
+  | let result = aws::stepfunctions::state_machines_to_markdown_table(response)
+  | assert_eq(result, "No state machines found.")
+end
+
+# =========================================================================
+# Step Functions Tests — Executions
+# =========================================================================
+
+| let sfn_list_executions_json = "{\"executions\":[{\"executionArn\":\"arn:aws:states:us-east-1:123456789012:execution:OrderProcessor:exec-001\",\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:OrderProcessor\",\"name\":\"exec-001\",\"status\":\"RUNNING\",\"startDate\":\"2024-06-15T10:00:00Z\"},{\"executionArn\":\"arn:aws:states:us-east-1:123456789012:execution:OrderProcessor:exec-002\",\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:OrderProcessor\",\"name\":\"exec-002\",\"status\":\"SUCCEEDED\",\"startDate\":\"2024-06-15T09:00:00Z\",\"stopDate\":\"2024-06-15T09:01:00Z\"},{\"executionArn\":\"arn:aws:states:us-east-1:123456789012:execution:OrderProcessor:exec-003\",\"stateMachineArn\":\"arn:aws:states:us-east-1:123456789012:stateMachine:OrderProcessor\",\"name\":\"exec-003\",\"status\":\"FAILED\",\"startDate\":\"2024-06-15T08:00:00Z\",\"stopDate\":\"2024-06-15T08:00:30Z\"}]}" |
+
+def test_sfn_executions_count():
+  let response = json::json_parse(sfn_list_executions_json)
+  | let result = aws::stepfunctions::executions(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_sfn_running_executions():
+  let response = json::json_parse(sfn_list_executions_json)
+  | let result = aws::stepfunctions::running_executions(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["name"], "exec-001")
+end
+
+def test_sfn_executions_by_status_succeeded():
+  let response = json::json_parse(sfn_list_executions_json)
+  | let result = aws::stepfunctions::executions_by_status(response, "SUCCEEDED")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["name"], "exec-002")
+end
+
+def test_sfn_executions_by_status_failed():
+  let response = json::json_parse(sfn_list_executions_json)
+  | let result = aws::stepfunctions::executions_by_status(response, "FAILED")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["name"], "exec-003")
+end
+
+def test_sfn_executions_empty():
+  let response = json::json_parse("{\"executions\":[]}")
+  | let result = aws::stepfunctions::executions(response)
+  | assert_empty(result)
+end
+
+def test_sfn_executions_to_markdown_table():
+  let response = json::json_parse(sfn_list_executions_json)
+  | let result = aws::stepfunctions::executions_to_markdown_table(response)
+  | assert(contains(result, "| Name | Status | StartDate | StopDate |"))
+  | assert(contains(result, "exec-001"))
+  | assert(contains(result, "RUNNING"))
+  | assert(contains(result, "exec-002"))
+  | assert(contains(result, "SUCCEEDED"))
+  | assert(contains(result, "FAILED"))
+end
+
+def test_sfn_executions_to_markdown_table_empty():
+  let response = json::json_parse("{\"executions\":[]}")
+  | let result = aws::stepfunctions::executions_to_markdown_table(response)
+  | assert_eq(result, "No executions found.")
+end
+
+# =========================================================================
+# EventBridge Tests — Rules
+# =========================================================================
+
+| let eb_list_rules_json = "{\"Rules\":[{\"Name\":\"daily-report\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:rule/daily-report\",\"State\":\"ENABLED\",\"ScheduleExpression\":\"cron(0 9 * * ? *)\",\"EventBusName\":\"default\"},{\"Name\":\"order-events\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:rule/order-events\",\"State\":\"ENABLED\",\"EventPattern\":\"{\\\"source\\\":[\\\"com.example.orders\\\"]}\",\"EventBusName\":\"default\"},{\"Name\":\"disabled-rule\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:rule/disabled-rule\",\"State\":\"DISABLED\",\"ScheduleExpression\":\"rate(1 hour)\",\"EventBusName\":\"default\"}]}" |
+
+def test_eb_rules_count():
+  let response = json::json_parse(eb_list_rules_json)
+  | let result = aws::eventbridge::rules(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_eb_rule_names():
+  let response = json::json_parse(eb_list_rules_json)
+  | let names = aws::eventbridge::rule_names(response)
+  | assert_eq(names, ["daily-report", "order-events", "disabled-rule"])
+end
+
+def test_eb_enabled_rules():
+  let response = json::json_parse(eb_list_rules_json)
+  | let result = aws::eventbridge::enabled_rules(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Name"], "daily-report")
+  | assert_eq(result[1]["Name"], "order-events")
+end
+
+def test_eb_disabled_rules():
+  let response = json::json_parse(eb_list_rules_json)
+  | let result = aws::eventbridge::disabled_rules(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Name"], "disabled-rule")
+end
+
+def test_eb_rules_empty():
+  let response = json::json_parse("{\"Rules\":[]}")
+  | let result = aws::eventbridge::rules(response)
+  | assert_empty(result)
+end
+
+def test_eb_rules_null():
+  let response = json::json_parse("{}")
+  | let result = aws::eventbridge::rules(response)
+  | assert_empty(result)
+end
+
+def test_eb_rules_to_markdown_table():
+  let response = json::json_parse(eb_list_rules_json)
+  | let result = aws::eventbridge::rules_to_markdown_table(response)
+  | assert(contains(result, "| Name | State | ScheduleExpression | EventBusName |"))
+  | assert(contains(result, "daily-report"))
+  | assert(contains(result, "ENABLED"))
+  | assert(contains(result, "DISABLED"))
+  | assert(contains(result, "cron(0 9 * * ? *)"))
+end
+
+def test_eb_rules_to_markdown_table_empty():
+  let response = json::json_parse("{\"Rules\":[]}")
+  | let result = aws::eventbridge::rules_to_markdown_table(response)
+  | assert_eq(result, "No rules found.")
+end
+
+# =========================================================================
+# EventBridge Tests — Event Buses
+# =========================================================================
+
+| let eb_list_buses_json = "{\"EventBuses\":[{\"Name\":\"default\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:event-bus/default\"},{\"Name\":\"orders-bus\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:event-bus/orders-bus\"},{\"Name\":\"partner/saas-provider\",\"Arn\":\"arn:aws:events:us-east-1:123456789012:event-bus/partner/saas-provider\"}]}" |
+
+def test_eb_event_buses_count():
+  let response = json::json_parse(eb_list_buses_json)
+  | let result = aws::eventbridge::event_buses(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_eb_event_bus_names():
+  let response = json::json_parse(eb_list_buses_json)
+  | let names = aws::eventbridge::event_bus_names(response)
+  | assert_eq(names, ["default", "orders-bus", "partner/saas-provider"])
+end
+
+def test_eb_event_buses_empty():
+  let response = json::json_parse("{\"EventBuses\":[]}")
+  | let result = aws::eventbridge::event_buses(response)
+  | assert_empty(result)
+end
+
+def test_eb_event_buses_to_markdown_table():
+  let response = json::json_parse(eb_list_buses_json)
+  | let result = aws::eventbridge::event_buses_to_markdown_table(response)
+  | assert(contains(result, "| Name | Arn |"))
+  | assert(contains(result, "default"))
+  | assert(contains(result, "orders-bus"))
+  | assert(contains(result, "partner/saas-provider"))
+end
+
+def test_eb_event_buses_to_markdown_table_empty():
+  let response = json::json_parse("{\"EventBuses\":[]}")
+  | let result = aws::eventbridge::event_buses_to_markdown_table(response)
+  | assert_eq(result, "No event buses found.")
+end
+
+# =========================================================================
+# ECR Tests — Repositories
+# =========================================================================
+
+| let ecr_describe_repos_json = "{\"repositories\":[{\"repositoryName\":\"app/backend\",\"repositoryArn\":\"arn:aws:ecr:us-east-1:123456789012:repository/app/backend\",\"registryId\":\"123456789012\",\"repositoryUri\":\"123456789012.dkr.ecr.us-east-1.amazonaws.com/app/backend\",\"createdAt\":\"2024-01-01T00:00:00Z\"},{\"repositoryName\":\"app/frontend\",\"repositoryArn\":\"arn:aws:ecr:us-east-1:123456789012:repository/app/frontend\",\"registryId\":\"123456789012\",\"repositoryUri\":\"123456789012.dkr.ecr.us-east-1.amazonaws.com/app/frontend\",\"createdAt\":\"2024-02-01T00:00:00Z\"},{\"repositoryName\":\"base/python\",\"repositoryArn\":\"arn:aws:ecr:us-east-1:123456789012:repository/base/python\",\"registryId\":\"123456789012\",\"repositoryUri\":\"123456789012.dkr.ecr.us-east-1.amazonaws.com/base/python\",\"createdAt\":\"2024-03-01T00:00:00Z\"}]}" |
+
+def test_ecr_repositories_count():
+  let response = json::json_parse(ecr_describe_repos_json)
+  | let result = aws::ecr::repositories(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ecr_repository_names():
+  let response = json::json_parse(ecr_describe_repos_json)
+  | let names = aws::ecr::repository_names(response)
+  | assert_eq(names, ["app/backend", "app/frontend", "base/python"])
+end
+
+def test_ecr_repositories_empty():
+  let response = json::json_parse("{\"repositories\":[]}")
+  | let result = aws::ecr::repositories(response)
+  | assert_empty(result)
+end
+
+def test_ecr_repositories_null():
+  let response = json::json_parse("{}")
+  | let result = aws::ecr::repositories(response)
+  | assert_empty(result)
+end
+
+def test_ecr_repositories_to_markdown_table():
+  let response = json::json_parse(ecr_describe_repos_json)
+  | let result = aws::ecr::repositories_to_markdown_table(response)
+  | assert(contains(result, "| RepositoryName | RepositoryUri | CreatedAt |"))
+  | assert(contains(result, "app/backend"))
+  | assert(contains(result, "123456789012.dkr.ecr.us-east-1.amazonaws.com/app/backend"))
+  | assert(contains(result, "app/frontend"))
+end
+
+def test_ecr_repositories_to_markdown_table_empty():
+  let response = json::json_parse("{\"repositories\":[]}")
+  | let result = aws::ecr::repositories_to_markdown_table(response)
+  | assert_eq(result, "No repositories found.")
+end
+
+# =========================================================================
+# ECR Tests — Images
+# =========================================================================
+
+| let ecr_describe_images_json = "{\"imageDetails\":[{\"registryId\":\"123456789012\",\"repositoryName\":\"app/backend\",\"imageDigest\":\"sha256:abc123\",\"imageTags\":[\"latest\",\"v1.0.0\"],\"imageSizeInBytes\":52428800,\"imagePushedAt\":\"2024-06-01T00:00:00Z\"},{\"registryId\":\"123456789012\",\"repositoryName\":\"app/backend\",\"imageDigest\":\"sha256:def456\",\"imageTags\":[\"v0.9.0\"],\"imageSizeInBytes\":48234496,\"imagePushedAt\":\"2024-05-01T00:00:00Z\"},{\"registryId\":\"123456789012\",\"repositoryName\":\"app/backend\",\"imageDigest\":\"sha256:ghi789\",\"imageTags\":[],\"imageSizeInBytes\":45056000,\"imagePushedAt\":\"2024-04-01T00:00:00Z\"}]}" |
+
+def test_ecr_images_count():
+  let response = json::json_parse(ecr_describe_images_json)
+  | let result = aws::ecr::images(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ecr_image_tags():
+  let response = json::json_parse(ecr_describe_images_json)
+  | let tags = aws::ecr::image_tags(response)
+  | assert_eq(len(tags), 3)
+  | assert_eq(tags[0], "latest")
+  | assert_eq(tags[1], "v1.0.0")
+  | assert_eq(tags[2], "v0.9.0")
+end
+
+def test_ecr_total_image_size():
+  let response = json::json_parse(ecr_describe_images_json)
+  | let size = aws::ecr::total_image_size(response)
+  | assert_eq(size, 145719296)
+end
+
+def test_ecr_images_empty():
+  let response = json::json_parse("{\"imageDetails\":[]}")
+  | let result = aws::ecr::images(response)
+  | assert_empty(result)
+end
+
+def test_ecr_images_to_markdown_table():
+  let response = json::json_parse(ecr_describe_images_json)
+  | let result = aws::ecr::images_to_markdown_table(response)
+  | assert(contains(result, "| RepositoryName | ImageDigest | Tags | SizeBytes | PushedAt |"))
+  | assert(contains(result, "app/backend"))
+  | assert(contains(result, "sha256:abc123"))
+  | assert(contains(result, "latest"))
+  | assert(contains(result, "v1.0.0"))
+end
+
+def test_ecr_images_to_markdown_table_empty():
+  let response = json::json_parse("{\"imageDetails\":[]}")
+  | let result = aws::ecr::images_to_markdown_table(response)
+  | assert_eq(result, "No images found.")
+end
+
+# =========================================================================
+# Cognito Tests — User Pools
+# =========================================================================
+
+| let cognito_list_user_pools_json = "{\"UserPools\":[{\"Id\":\"us-east-1_Abc123\",\"Name\":\"prod-users\",\"Status\":\"Enabled\",\"CreationDate\":\"2024-01-01T00:00:00Z\",\"LastModifiedDate\":\"2024-06-01T00:00:00Z\"},{\"Id\":\"us-east-1_Def456\",\"Name\":\"staging-users\",\"Status\":\"Enabled\",\"CreationDate\":\"2024-02-01T00:00:00Z\",\"LastModifiedDate\":\"2024-05-01T00:00:00Z\"},{\"Id\":\"us-east-1_Ghi789\",\"Name\":\"dev-users\",\"Status\":\"Enabled\",\"CreationDate\":\"2024-03-01T00:00:00Z\",\"LastModifiedDate\":\"2024-04-01T00:00:00Z\"}]}" |
+
+def test_cognito_user_pools_count():
+  let response = json::json_parse(cognito_list_user_pools_json)
+  | let result = aws::cognito::user_pools(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cognito_user_pool_names():
+  let response = json::json_parse(cognito_list_user_pools_json)
+  | let names = aws::cognito::user_pool_names(response)
+  | assert_eq(names, ["prod-users", "staging-users", "dev-users"])
+end
+
+def test_cognito_user_pools_empty():
+  let response = json::json_parse("{\"UserPools\":[]}")
+  | let result = aws::cognito::user_pools(response)
+  | assert_empty(result)
+end
+
+def test_cognito_user_pools_null():
+  let response = json::json_parse("{}")
+  | let result = aws::cognito::user_pools(response)
+  | assert_empty(result)
+end
+
+def test_cognito_user_pools_to_markdown_table():
+  let response = json::json_parse(cognito_list_user_pools_json)
+  | let result = aws::cognito::user_pools_to_markdown_table(response)
+  | assert(contains(result, "| Name | Id | Status | CreationDate | LastModifiedDate |"))
+  | assert(contains(result, "prod-users"))
+  | assert(contains(result, "us-east-1_Abc123"))
+  | assert(contains(result, "Enabled"))
+end
+
+def test_cognito_user_pools_to_markdown_table_empty():
+  let response = json::json_parse("{\"UserPools\":[]}")
+  | let result = aws::cognito::user_pools_to_markdown_table(response)
+  | assert_eq(result, "No user pools found.")
+end
+
+# =========================================================================
+# Cognito Tests — Users
+# =========================================================================
+
+| let cognito_list_users_json = "{\"Users\":[{\"Username\":\"alice\",\"Attributes\":[{\"Name\":\"email\",\"Value\":\"alice@example.com\"},{\"Name\":\"sub\",\"Value\":\"uuid-001\"}],\"UserCreateDate\":\"2024-01-01T00:00:00Z\",\"UserLastModifiedDate\":\"2024-06-01T00:00:00Z\",\"Enabled\":true,\"UserStatus\":\"CONFIRMED\"},{\"Username\":\"bob\",\"Attributes\":[{\"Name\":\"email\",\"Value\":\"bob@example.com\"},{\"Name\":\"sub\",\"Value\":\"uuid-002\"}],\"UserCreateDate\":\"2024-02-01T00:00:00Z\",\"UserLastModifiedDate\":\"2024-05-01T00:00:00Z\",\"Enabled\":true,\"UserStatus\":\"CONFIRMED\"},{\"Username\":\"charlie\",\"Attributes\":[{\"Name\":\"email\",\"Value\":\"charlie@example.com\"},{\"Name\":\"sub\",\"Value\":\"uuid-003\"}],\"UserCreateDate\":\"2024-03-01T00:00:00Z\",\"UserLastModifiedDate\":\"2024-04-01T00:00:00Z\",\"Enabled\":false,\"UserStatus\":\"UNCONFIRMED\"},{\"Username\":\"dave\",\"Attributes\":[{\"Name\":\"email\",\"Value\":\"dave@example.com\"},{\"Name\":\"sub\",\"Value\":\"uuid-004\"}],\"UserCreateDate\":\"2024-04-01T00:00:00Z\",\"UserLastModifiedDate\":\"2024-04-01T00:00:00Z\",\"Enabled\":true,\"UserStatus\":\"FORCE_CHANGE_PASSWORD\"}]}" |
+
+def test_cognito_users_count():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::users(response)
+  | assert_eq(len(result), 4)
+end
+
+def test_cognito_usernames():
+  let response = json::json_parse(cognito_list_users_json)
+  | let names = aws::cognito::usernames(response)
+  | assert_eq(names, ["alice", "bob", "charlie", "dave"])
+end
+
+def test_cognito_confirmed_users():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::confirmed_users(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Username"], "alice")
+  | assert_eq(result[1]["Username"], "bob")
+end
+
+def test_cognito_users_by_status_unconfirmed():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::users_by_status(response, "UNCONFIRMED")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Username"], "charlie")
+end
+
+def test_cognito_users_by_status_force_change():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::users_by_status(response, "FORCE_CHANGE_PASSWORD")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Username"], "dave")
+end
+
+def test_cognito_enabled_users():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::enabled_users(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0]["Username"], "alice")
+  | assert_eq(result[1]["Username"], "bob")
+  | assert_eq(result[2]["Username"], "dave")
+end
+
+def test_cognito_user_attribute():
+  let response = json::json_parse(cognito_list_users_json)
+  | let u = aws::cognito::users(response)
+  | let email = aws::cognito::user_attribute(u[0], "email")
+  | assert_eq(email, "alice@example.com")
+end
+
+def test_cognito_user_attribute_not_found():
+  let response = json::json_parse(cognito_list_users_json)
+  | let u = aws::cognito::users(response)
+  | let result = aws::cognito::user_attribute(u[0], "phone_number")
+  | assert_none(result)
+end
+
+def test_cognito_users_empty():
+  let response = json::json_parse("{\"Users\":[]}")
+  | let result = aws::cognito::users(response)
+  | assert_empty(result)
+end
+
+def test_cognito_users_to_markdown_table():
+  let response = json::json_parse(cognito_list_users_json)
+  | let result = aws::cognito::users_to_markdown_table(response)
+  | assert(contains(result, "| Username | Status | Enabled | UserCreateDate |"))
+  | assert(contains(result, "alice"))
+  | assert(contains(result, "CONFIRMED"))
+  | assert(contains(result, "UNCONFIRMED"))
+  | assert(contains(result, "true"))
+  | assert(contains(result, "false"))
+end
+
+def test_cognito_users_to_markdown_table_empty():
+  let response = json::json_parse("{\"Users\":[]}")
+  | let result = aws::cognito::users_to_markdown_table(response)
+  | assert_eq(result, "No users found.")
+end
+
+# =========================================================================
+# EC2 Tests — AMIs (DescribeImages)
+# =========================================================================
+
+| let ec2_images_json = "{\"Images\":[{\"ImageId\":\"ami-001\",\"Name\":\"app-server-2024-06\",\"State\":\"available\",\"Architecture\":\"x86_64\",\"OwnerId\":\"123456789012\",\"CreationDate\":\"2024-06-01T00:00:00.000Z\"},{\"ImageId\":\"ami-002\",\"Name\":\"base-ubuntu-22\",\"State\":\"available\",\"Architecture\":\"arm64\",\"OwnerId\":\"123456789012\",\"CreationDate\":\"2024-05-01T00:00:00.000Z\"},{\"ImageId\":\"ami-003\",\"Name\":\"old-app-server\",\"State\":\"deregistered\",\"Architecture\":\"x86_64\",\"OwnerId\":\"999999999999\",\"CreationDate\":\"2023-01-01T00:00:00.000Z\"}]}" |
+
+def test_ec2_images_count():
+  let response = json::json_parse(ec2_images_json)
+  | let result = aws::ec2::images(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_available_images():
+  let response = json::json_parse(ec2_images_json)
+  | let result = aws::ec2::available_images(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["ImageId"], "ami-001")
+  | assert_eq(result[1]["ImageId"], "ami-002")
+end
+
+def test_ec2_images_by_owner():
+  let response = json::json_parse(ec2_images_json)
+  | let result = aws::ec2::images_by_owner(response, "123456789012")
+  | assert_eq(len(result), 2)
+end
+
+def test_ec2_images_by_owner_other():
+  let response = json::json_parse(ec2_images_json)
+  | let result = aws::ec2::images_by_owner(response, "999999999999")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["ImageId"], "ami-003")
+end
+
+def test_ec2_images_empty():
+  let response = json::json_parse("{\"Images\":[]}")
+  | let result = aws::ec2::images(response)
+  | assert_empty(result)
+end
+
+def test_ec2_images_to_markdown_table():
+  let response = json::json_parse(ec2_images_json)
+  | let result = aws::ec2::images_to_markdown_table(response)
+  | assert(contains(result, "| ImageId | Name | State | Architecture | OwnerId |"))
+  | assert(contains(result, "ami-001"))
+  | assert(contains(result, "app-server-2024-06"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "x86_64"))
+end
+
+def test_ec2_images_to_markdown_table_empty():
+  let response = json::json_parse("{\"Images\":[]}")
+  | let result = aws::ec2::images_to_markdown_table(response)
+  | assert_eq(result, "No images found.")
+end
+
+# =========================================================================
+# EC2 Tests — Elastic IPs (DescribeAddresses)
+# =========================================================================
+
+| let ec2_addresses_json = "{\"Addresses\":[{\"PublicIp\":\"1.2.3.4\",\"AllocationId\":\"eipalloc-001\",\"AssociationId\":\"eipassoc-001\",\"InstanceId\":\"i-001\",\"Domain\":\"vpc\"},{\"PublicIp\":\"5.6.7.8\",\"AllocationId\":\"eipalloc-002\",\"AssociationId\":\"eipassoc-002\",\"InstanceId\":\"i-002\",\"Domain\":\"vpc\"},{\"PublicIp\":\"9.10.11.12\",\"AllocationId\":\"eipalloc-003\",\"Domain\":\"vpc\"}]}" |
+
+def test_ec2_addresses_count():
+  let response = json::json_parse(ec2_addresses_json)
+  | let result = aws::ec2::addresses(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_unassociated_addresses():
+  let response = json::json_parse(ec2_addresses_json)
+  | let result = aws::ec2::unassociated_addresses(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["PublicIp"], "9.10.11.12")
+end
+
+def test_ec2_addresses_empty():
+  let response = json::json_parse("{\"Addresses\":[]}")
+  | let result = aws::ec2::addresses(response)
+  | assert_empty(result)
+end
+
+def test_ec2_addresses_to_markdown_table():
+  let response = json::json_parse(ec2_addresses_json)
+  | let result = aws::ec2::addresses_to_markdown_table(response)
+  | assert(contains(result, "| PublicIp | AllocationId | InstanceId | Domain |"))
+  | assert(contains(result, "1.2.3.4"))
+  | assert(contains(result, "eipalloc-001"))
+  | assert(contains(result, "i-001"))
+end
+
+def test_ec2_addresses_to_markdown_table_empty():
+  let response = json::json_parse("{\"Addresses\":[]}")
+  | let result = aws::ec2::addresses_to_markdown_table(response)
+  | assert_eq(result, "No Elastic IPs found.")
+end
+
+# =========================================================================
+# EC2 Tests — NAT Gateways (DescribeNatGateways)
+# =========================================================================
+
+| let ec2_nat_gateways_json = "{\"NatGateways\":[{\"NatGatewayId\":\"nat-001\",\"State\":\"available\",\"VpcId\":\"vpc-001\",\"SubnetId\":\"subnet-001\",\"NatGatewayAddresses\":[{\"PublicIp\":\"1.2.3.4\",\"AllocationId\":\"eipalloc-001\"}]},{\"NatGatewayId\":\"nat-002\",\"State\":\"available\",\"VpcId\":\"vpc-002\",\"SubnetId\":\"subnet-003\",\"NatGatewayAddresses\":[{\"PublicIp\":\"5.6.7.8\",\"AllocationId\":\"eipalloc-002\"}]},{\"NatGatewayId\":\"nat-003\",\"State\":\"deleting\",\"VpcId\":\"vpc-001\",\"SubnetId\":\"subnet-002\",\"NatGatewayAddresses\":[]}]}" |
+
+def test_ec2_nat_gateways_count():
+  let response = json::json_parse(ec2_nat_gateways_json)
+  | let result = aws::ec2::nat_gateways(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_available_nat_gateways():
+  let response = json::json_parse(ec2_nat_gateways_json)
+  | let result = aws::ec2::available_nat_gateways(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["NatGatewayId"], "nat-001")
+  | assert_eq(result[1]["NatGatewayId"], "nat-002")
+end
+
+def test_ec2_nat_gateways_by_vpc():
+  let response = json::json_parse(ec2_nat_gateways_json)
+  | let result = aws::ec2::nat_gateways_by_vpc(response, "vpc-001")
+  | assert_eq(len(result), 2)
+end
+
+def test_ec2_nat_gateways_empty():
+  let response = json::json_parse("{\"NatGateways\":[]}")
+  | let result = aws::ec2::nat_gateways(response)
+  | assert_empty(result)
+end
+
+def test_ec2_nat_gateways_to_markdown_table():
+  let response = json::json_parse(ec2_nat_gateways_json)
+  | let result = aws::ec2::nat_gateways_to_markdown_table(response)
+  | assert(contains(result, "| NatGatewayId | State | VpcId | SubnetId | PublicIp |"))
+  | assert(contains(result, "nat-001"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "1.2.3.4"))
+  | assert(contains(result, "deleting"))
+end
+
+def test_ec2_nat_gateways_to_markdown_table_empty():
+  let response = json::json_parse("{\"NatGateways\":[]}")
+  | let result = aws::ec2::nat_gateways_to_markdown_table(response)
+  | assert_eq(result, "No NAT gateways found.")
+end
+
+# =========================================================================
+# EC2 Tests — Route Tables (DescribeRouteTables)
+# =========================================================================
+
+| let ec2_route_tables_json = "{\"RouteTables\":[{\"RouteTableId\":\"rtb-001\",\"VpcId\":\"vpc-001\",\"Routes\":[{\"DestinationCidrBlock\":\"0.0.0.0/0\",\"GatewayId\":\"igw-001\"},{\"DestinationCidrBlock\":\"10.0.0.0/16\",\"GatewayId\":\"local\"}],\"Tags\":[{\"Key\":\"Name\",\"Value\":\"public-rt\"}]},{\"RouteTableId\":\"rtb-002\",\"VpcId\":\"vpc-001\",\"Routes\":[{\"DestinationCidrBlock\":\"10.0.0.0/16\",\"GatewayId\":\"local\"}],\"Tags\":[{\"Key\":\"Name\",\"Value\":\"private-rt\"}]},{\"RouteTableId\":\"rtb-003\",\"VpcId\":\"vpc-002\",\"Routes\":[{\"DestinationCidrBlock\":\"172.31.0.0/16\",\"GatewayId\":\"local\"}],\"Tags\":[]}]}" |
+
+def test_ec2_route_tables_count():
+  let response = json::json_parse(ec2_route_tables_json)
+  | let result = aws::ec2::route_tables(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_route_tables_by_vpc():
+  let response = json::json_parse(ec2_route_tables_json)
+  | let result = aws::ec2::route_tables_by_vpc(response, "vpc-001")
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["RouteTableId"], "rtb-001")
+  | assert_eq(result[1]["RouteTableId"], "rtb-002")
+end
+
+def test_ec2_route_tables_empty():
+  let response = json::json_parse("{\"RouteTables\":[]}")
+  | let result = aws::ec2::route_tables(response)
+  | assert_empty(result)
+end
+
+def test_ec2_route_tables_to_markdown_table():
+  let response = json::json_parse(ec2_route_tables_json)
+  | let result = aws::ec2::route_tables_to_markdown_table(response)
+  | assert(contains(result, "| RouteTableId | VpcId | Routes | Name |"))
+  | assert(contains(result, "rtb-001"))
+  | assert(contains(result, "vpc-001"))
+  | assert(contains(result, "2"))
+  | assert(contains(result, "public-rt"))
+end
+
+def test_ec2_route_tables_to_markdown_table_empty():
+  let response = json::json_parse("{\"RouteTables\":[]}")
+  | let result = aws::ec2::route_tables_to_markdown_table(response)
+  | assert_eq(result, "No route tables found.")
+end
+
+# =========================================================================
+# IAM Tests — Groups
+# =========================================================================
+
+| let iam_list_groups_json = "{\"Groups\":[{\"GroupName\":\"Admins\",\"GroupId\":\"AGPA001\",\"Arn\":\"arn:aws:iam::123456789012:group/Admins\",\"Path\":\"/\",\"CreateDate\":\"2024-01-01T00:00:00Z\"},{\"GroupName\":\"Developers\",\"GroupId\":\"AGPA002\",\"Arn\":\"arn:aws:iam::123456789012:group/Developers\",\"Path\":\"/\",\"CreateDate\":\"2024-02-01T00:00:00Z\"},{\"GroupName\":\"ReadOnly\",\"GroupId\":\"AGPA003\",\"Arn\":\"arn:aws:iam::123456789012:group/ReadOnly\",\"Path\":\"/\",\"CreateDate\":\"2024-03-01T00:00:00Z\"}]}" |
+
+def test_iam_groups_count():
+  let response = json::json_parse(iam_list_groups_json)
+  | let result = aws::iam::groups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_iam_group_names():
+  let response = json::json_parse(iam_list_groups_json)
+  | let names = aws::iam::group_names(response)
+  | assert_eq(names, ["Admins", "Developers", "ReadOnly"])
+end
+
+def test_iam_groups_empty():
+  let response = json::json_parse("{\"Groups\":[]}")
+  | let result = aws::iam::groups(response)
+  | assert_empty(result)
+end
+
+def test_iam_groups_to_markdown_table():
+  let response = json::json_parse(iam_list_groups_json)
+  | let result = aws::iam::groups_to_markdown_table(response)
+  | assert(contains(result, "| GroupName | GroupId | Arn | CreateDate |"))
+  | assert(contains(result, "Admins"))
+  | assert(contains(result, "AGPA001"))
+  | assert(contains(result, "arn:aws:iam::123456789012:group/Admins"))
+end
+
+def test_iam_groups_to_markdown_table_empty():
+  let response = json::json_parse("{\"Groups\":[]}")
+  | let result = aws::iam::groups_to_markdown_table(response)
+  | assert_eq(result, "No groups found.")
+end
+
+# =========================================================================
+# IAM Tests — Instance Profiles
+# =========================================================================
+
+| let iam_list_profiles_json = "{\"InstanceProfiles\":[{\"InstanceProfileName\":\"ec2-web-role\",\"InstanceProfileId\":\"AIPA001\",\"Arn\":\"arn:aws:iam::123456789012:instance-profile/ec2-web-role\",\"Path\":\"/\",\"Roles\":[],\"CreateDate\":\"2024-01-01T00:00:00Z\"},{\"InstanceProfileName\":\"ec2-worker-role\",\"InstanceProfileId\":\"AIPA002\",\"Arn\":\"arn:aws:iam::123456789012:instance-profile/ec2-worker-role\",\"Path\":\"/\",\"Roles\":[],\"CreateDate\":\"2024-02-01T00:00:00Z\"}]}" |
+
+def test_iam_instance_profiles_count():
+  let response = json::json_parse(iam_list_profiles_json)
+  | let result = aws::iam::instance_profiles(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_iam_instance_profile_names():
+  let response = json::json_parse(iam_list_profiles_json)
+  | let names = aws::iam::instance_profile_names(response)
+  | assert_eq(names, ["ec2-web-role", "ec2-worker-role"])
+end
+
+def test_iam_instance_profiles_empty():
+  let response = json::json_parse("{\"InstanceProfiles\":[]}")
+  | let result = aws::iam::instance_profiles(response)
+  | assert_empty(result)
+end
+
+def test_iam_instance_profiles_to_markdown_table():
+  let response = json::json_parse(iam_list_profiles_json)
+  | let result = aws::iam::instance_profiles_to_markdown_table(response)
+  | assert(contains(result, "| InstanceProfileName | InstanceProfileId | Arn | CreateDate |"))
+  | assert(contains(result, "ec2-web-role"))
+  | assert(contains(result, "AIPA001"))
+end
+
+def test_iam_instance_profiles_to_markdown_table_empty():
+  let response = json::json_parse("{\"InstanceProfiles\":[]}")
+  | let result = aws::iam::instance_profiles_to_markdown_table(response)
+  | assert_eq(result, "No instance profiles found.")
+end
+
+# =========================================================================
+# RDS Tests — DB Snapshots
+# =========================================================================
+
+| let rds_snapshots_json = "{\"DBSnapshots\":[{\"DBSnapshotIdentifier\":\"rds:prod-mysql-2024-06-01\",\"DBInstanceIdentifier\":\"prod-mysql\",\"Engine\":\"mysql\",\"Status\":\"available\",\"SnapshotType\":\"automated\",\"AllocatedStorage\":100},{\"DBSnapshotIdentifier\":\"manual-backup-before-upgrade\",\"DBInstanceIdentifier\":\"prod-mysql\",\"Engine\":\"mysql\",\"Status\":\"available\",\"SnapshotType\":\"manual\",\"AllocatedStorage\":100},{\"DBSnapshotIdentifier\":\"rds:dev-postgres-2024-06-01\",\"DBInstanceIdentifier\":\"dev-postgres\",\"Engine\":\"postgres\",\"Status\":\"creating\",\"SnapshotType\":\"automated\",\"AllocatedStorage\":20}]}" |
+
+def test_rds_db_snapshots_count():
+  let response = json::json_parse(rds_snapshots_json)
+  | let result = aws::rds::db_snapshots(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_rds_automated_snapshots():
+  let response = json::json_parse(rds_snapshots_json)
+  | let result = aws::rds::automated_snapshots(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["DBSnapshotIdentifier"], "rds:prod-mysql-2024-06-01")
+  | assert_eq(result[1]["DBSnapshotIdentifier"], "rds:dev-postgres-2024-06-01")
+end
+
+def test_rds_manual_snapshots():
+  let response = json::json_parse(rds_snapshots_json)
+  | let result = aws::rds::manual_snapshots(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["DBSnapshotIdentifier"], "manual-backup-before-upgrade")
+end
+
+def test_rds_available_snapshots():
+  let response = json::json_parse(rds_snapshots_json)
+  | let result = aws::rds::available_snapshots(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_rds_db_snapshots_empty():
+  let response = json::json_parse("{\"DBSnapshots\":[]}")
+  | let result = aws::rds::db_snapshots(response)
+  | assert_empty(result)
+end
+
+def test_rds_db_snapshots_to_markdown_table():
+  let response = json::json_parse(rds_snapshots_json)
+  | let result = aws::rds::db_snapshots_to_markdown_table(response)
+  | assert(contains(result, "| SnapshotId | DBInstanceIdentifier | Engine | Status | SnapshotType | AllocatedStorage |"))
+  | assert(contains(result, "rds:prod-mysql-2024-06-01"))
+  | assert(contains(result, "prod-mysql"))
+  | assert(contains(result, "automated"))
+  | assert(contains(result, "manual"))
+end
+
+def test_rds_db_snapshots_to_markdown_table_empty():
+  let response = json::json_parse("{\"DBSnapshots\":[]}")
+  | let result = aws::rds::db_snapshots_to_markdown_table(response)
+  | assert_eq(result, "No DB snapshots found.")
+end
+
+# =========================================================================
+# RDS Tests — DB Clusters (Aurora)
+# =========================================================================
+
+| let rds_clusters_json = "{\"DBClusters\":[{\"DBClusterIdentifier\":\"aurora-prod\",\"Engine\":\"aurora-mysql\",\"EngineVersion\":\"8.0.mysql_aurora.3.04.0\",\"Status\":\"available\",\"MultiAZ\":true,\"DBClusterMembers\":[{\"DBInstanceIdentifier\":\"aurora-prod-1\",\"IsClusterWriter\":true},{\"DBInstanceIdentifier\":\"aurora-prod-2\",\"IsClusterWriter\":false}]},{\"DBClusterIdentifier\":\"aurora-staging\",\"Engine\":\"aurora-postgresql\",\"EngineVersion\":\"15.4\",\"Status\":\"available\",\"MultiAZ\":false,\"DBClusterMembers\":[{\"DBInstanceIdentifier\":\"aurora-staging-1\",\"IsClusterWriter\":true}]},{\"DBClusterIdentifier\":\"aurora-old\",\"Engine\":\"aurora-mysql\",\"EngineVersion\":\"5.7.mysql_aurora.2.11.4\",\"Status\":\"stopped\",\"MultiAZ\":false,\"DBClusterMembers\":[]}]}" |
+
+def test_rds_db_clusters_count():
+  let response = json::json_parse(rds_clusters_json)
+  | let result = aws::rds::db_clusters(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_rds_available_db_clusters():
+  let response = json::json_parse(rds_clusters_json)
+  | let result = aws::rds::available_db_clusters(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["DBClusterIdentifier"], "aurora-prod")
+  | assert_eq(result[1]["DBClusterIdentifier"], "aurora-staging")
+end
+
+def test_rds_db_cluster_ids():
+  let response = json::json_parse(rds_clusters_json)
+  | let ids = aws::rds::db_cluster_ids(response)
+  | assert_eq(ids, ["aurora-prod", "aurora-staging", "aurora-old"])
+end
+
+def test_rds_db_clusters_empty():
+  let response = json::json_parse("{\"DBClusters\":[]}")
+  | let result = aws::rds::db_clusters(response)
+  | assert_empty(result)
+end
+
+def test_rds_db_clusters_to_markdown_table():
+  let response = json::json_parse(rds_clusters_json)
+  | let result = aws::rds::db_clusters_to_markdown_table(response)
+  | assert(contains(result, "| DBClusterIdentifier | Engine | EngineVersion | Status | MultiAZ | Members |"))
+  | assert(contains(result, "aurora-prod"))
+  | assert(contains(result, "aurora-mysql"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "2"))
+end
+
+def test_rds_db_clusters_to_markdown_table_empty():
+  let response = json::json_parse("{\"DBClusters\":[]}")
+  | let result = aws::rds::db_clusters_to_markdown_table(response)
+  | assert_eq(result, "No DB clusters found.")
+end
+
+# =========================================================================
+# CloudWatch Tests — Log Groups
+# =========================================================================
+
+| let cw_log_groups_json = "{\"logGroups\":[{\"logGroupName\":\"/aws/lambda/process-orders\",\"retentionInDays\":30,\"storedBytes\":102400,\"creationTime\":1704067200000},{\"logGroupName\":\"/aws/lambda/send-notifications\",\"retentionInDays\":7,\"storedBytes\":51200,\"creationTime\":1706745600000},{\"logGroupName\":\"/aws/rds/instance/prod-mysql/general\",\"retentionInDays\":90,\"storedBytes\":2048000,\"creationTime\":1701388800000}]}" |
+
+def test_cw_log_groups_count():
+  let response = json::json_parse(cw_log_groups_json)
+  | let result = aws::cloudwatch::log_groups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cw_log_group_names():
+  let response = json::json_parse(cw_log_groups_json)
+  | let names = aws::cloudwatch::log_group_names(response)
+  | assert_eq(names, ["/aws/lambda/process-orders", "/aws/lambda/send-notifications", "/aws/rds/instance/prod-mysql/general"])
+end
+
+def test_cw_total_stored_bytes():
+  let response = json::json_parse(cw_log_groups_json)
+  | let total = aws::cloudwatch::total_stored_bytes(response)
+  | assert_eq(total, 2201600)
+end
+
+def test_cw_log_groups_empty():
+  let response = json::json_parse("{\"logGroups\":[]}")
+  | let result = aws::cloudwatch::log_groups(response)
+  | assert_empty(result)
+end
+
+def test_cw_log_groups_to_markdown_table():
+  let response = json::json_parse(cw_log_groups_json)
+  | let result = aws::cloudwatch::log_groups_to_markdown_table(response)
+  | assert(contains(result, "| LogGroupName | RetentionDays | StoredBytes |"))
+  | assert(contains(result, "/aws/lambda/process-orders"))
+  | assert(contains(result, "30"))
+  | assert(contains(result, "102400"))
+end
+
+def test_cw_log_groups_to_markdown_table_empty():
+  let response = json::json_parse("{\"logGroups\":[]}")
+  | let result = aws::cloudwatch::log_groups_to_markdown_table(response)
+  | assert_eq(result, "No log groups found.")
+end
+
+# =========================================================================
+# CloudWatch Tests — Log Streams
+# =========================================================================
+
+| let cw_log_streams_json = "{\"logStreams\":[{\"logStreamName\":\"2024/06/15/[$LATEST]abc123def456\",\"firstEventTimestamp\":1718409600000,\"lastEventTimestamp\":1718496000000,\"storedBytes\":4096},{\"logStreamName\":\"2024/06/14/[$LATEST]789xyz012\",\"firstEventTimestamp\":1718323200000,\"lastEventTimestamp\":1718409599000,\"storedBytes\":8192}]}" |
+
+def test_cw_log_streams_count():
+  let response = json::json_parse(cw_log_streams_json)
+  | let result = aws::cloudwatch::log_streams(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_cw_log_stream_names():
+  let response = json::json_parse(cw_log_streams_json)
+  | let names = aws::cloudwatch::log_stream_names(response)
+  | assert_eq(len(names), 2)
+  | assert(contains(names[0], "2024/06/15"))
+end
+
+def test_cw_log_streams_empty():
+  let response = json::json_parse("{\"logStreams\":[]}")
+  | let result = aws::cloudwatch::log_streams(response)
+  | assert_empty(result)
+end
+
+def test_cw_log_streams_to_markdown_table():
+  let response = json::json_parse(cw_log_streams_json)
+  | let result = aws::cloudwatch::log_streams_to_markdown_table(response)
+  | assert(contains(result, "| LogStreamName | StoredBytes |"))
+  | assert(contains(result, "2024/06/15"))
+  | assert(contains(result, "4096"))
+end
+
+def test_cw_log_streams_to_markdown_table_empty():
+  let response = json::json_parse("{\"logStreams\":[]}")
+  | let result = aws::cloudwatch::log_streams_to_markdown_table(response)
+  | assert_eq(result, "No log streams found.")
+end
+
+# =========================================================================
+# CloudFront Tests
+# =========================================================================
+
+| let cf_distributions_json = "{\"DistributionList\":{\"Items\":[{\"Id\":\"E1ABC123DEF456\",\"DomainName\":\"abc123.cloudfront.net\",\"Status\":\"Deployed\",\"Enabled\":true,\"Comment\":\"Production CDN\"},{\"Id\":\"E2XYZ789GHI012\",\"DomainName\":\"xyz789.cloudfront.net\",\"Status\":\"Deployed\",\"Enabled\":true,\"Comment\":\"Staging CDN\"},{\"Id\":\"E3OLD111JKL222\",\"DomainName\":\"old111.cloudfront.net\",\"Status\":\"Deployed\",\"Enabled\":false,\"Comment\":\"Disabled old distribution\"}],\"Quantity\":3,\"IsTruncated\":false}}" |
+
+def test_cf_distributions_count():
+  let response = json::json_parse(cf_distributions_json)
+  | let result = aws::cloudfront::distributions(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cf_deployed_distributions():
+  let response = json::json_parse(cf_distributions_json)
+  | let result = aws::cloudfront::deployed_distributions(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cf_enabled_distributions():
+  let response = json::json_parse(cf_distributions_json)
+  | let result = aws::cloudfront::enabled_distributions(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Id"], "E1ABC123DEF456")
+  | assert_eq(result[1]["Id"], "E2XYZ789GHI012")
+end
+
+def test_cf_distribution_domain_names():
+  let response = json::json_parse(cf_distributions_json)
+  | let names = aws::cloudfront::distribution_domain_names(response)
+  | assert_eq(names, ["abc123.cloudfront.net", "xyz789.cloudfront.net", "old111.cloudfront.net"])
+end
+
+def test_cf_distributions_null():
+  let response = json::json_parse("{}")
+  | let result = aws::cloudfront::distributions(response)
+  | assert_empty(result)
+end
+
+def test_cf_distributions_to_markdown_table():
+  let response = json::json_parse(cf_distributions_json)
+  | let result = aws::cloudfront::distributions_to_markdown_table(response)
+  | assert(contains(result, "| Id | DomainName | Status | Enabled | Comment |"))
+  | assert(contains(result, "E1ABC123DEF456"))
+  | assert(contains(result, "abc123.cloudfront.net"))
+  | assert(contains(result, "Deployed"))
+  | assert(contains(result, "Production CDN"))
+end
+
+def test_cf_distributions_to_markdown_table_empty():
+  let response = json::json_parse("{\"DistributionList\":{\"Items\":[]}}")
+  | let result = aws::cloudfront::distributions_to_markdown_table(response)
+  | assert_eq(result, "No distributions found.")
+end
+
+# =========================================================================
+# ACM Tests
+# =========================================================================
+
+| let acm_certificates_json = "{\"CertificateSummaryList\":[{\"CertificateArn\":\"arn:aws:acm:us-east-1:123456789012:certificate/abc-123\",\"DomainName\":\"example.com\",\"Status\":\"ISSUED\"},{\"CertificateArn\":\"arn:aws:acm:us-east-1:123456789012:certificate/def-456\",\"DomainName\":\"api.example.com\",\"Status\":\"ISSUED\"},{\"CertificateArn\":\"arn:aws:acm:us-east-1:123456789012:certificate/ghi-789\",\"DomainName\":\"old.example.com\",\"Status\":\"EXPIRED\"}]}" |
+
+def test_acm_certificates_count():
+  let response = json::json_parse(acm_certificates_json)
+  | let result = aws::acm::certificates(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_acm_issued_certificates():
+  let response = json::json_parse(acm_certificates_json)
+  | let result = aws::acm::issued_certificates(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["DomainName"], "example.com")
+  | assert_eq(result[1]["DomainName"], "api.example.com")
+end
+
+def test_acm_certificate_domain_names():
+  let response = json::json_parse(acm_certificates_json)
+  | let names = aws::acm::certificate_domain_names(response)
+  | assert_eq(names, ["example.com", "api.example.com", "old.example.com"])
+end
+
+def test_acm_certificates_empty():
+  let response = json::json_parse("{\"CertificateSummaryList\":[]}")
+  | let result = aws::acm::certificates(response)
+  | assert_empty(result)
+end
+
+def test_acm_certificates_to_markdown_table():
+  let response = json::json_parse(acm_certificates_json)
+  | let result = aws::acm::certificates_to_markdown_table(response)
+  | assert(contains(result, "| DomainName | Status | CertificateArn |"))
+  | assert(contains(result, "example.com"))
+  | assert(contains(result, "ISSUED"))
+  | assert(contains(result, "EXPIRED"))
+end
+
+def test_acm_certificates_to_markdown_table_empty():
+  let response = json::json_parse("{\"CertificateSummaryList\":[]}")
+  | let result = aws::acm::certificates_to_markdown_table(response)
+  | assert_eq(result, "No certificates found.")
+end
+
+# =========================================================================
+# KMS Tests — Keys
+# =========================================================================
+
+| let kms_list_keys_json = "{\"Keys\":[{\"KeyId\":\"key-001\",\"KeyArn\":\"arn:aws:kms:us-east-1:123456789012:key/key-001\"},{\"KeyId\":\"key-002\",\"KeyArn\":\"arn:aws:kms:us-east-1:123456789012:key/key-002\"},{\"KeyId\":\"key-003\",\"KeyArn\":\"arn:aws:kms:us-east-1:123456789012:key/key-003\"}]}" |
+
+def test_kms_keys_count():
+  let response = json::json_parse(kms_list_keys_json)
+  | let count = aws::kms::key_count(response)
+  | assert_eq(count, 3)
+end
+
+def test_kms_keys_list():
+  let response = json::json_parse(kms_list_keys_json)
+  | let result = aws::kms::keys(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0]["KeyId"], "key-001")
+end
+
+def test_kms_keys_empty():
+  let response = json::json_parse("{\"Keys\":[]}")
+  | let result = aws::kms::keys(response)
+  | assert_empty(result)
+end
+
+def test_kms_keys_to_markdown_table():
+  let response = json::json_parse(kms_list_keys_json)
+  | let result = aws::kms::keys_to_markdown_table(response)
+  | assert(contains(result, "| KeyId | KeyArn |"))
+  | assert(contains(result, "key-001"))
+  | assert(contains(result, "arn:aws:kms:us-east-1:123456789012:key/key-001"))
+end
+
+def test_kms_keys_to_markdown_table_empty():
+  let response = json::json_parse("{\"Keys\":[]}")
+  | let result = aws::kms::keys_to_markdown_table(response)
+  | assert_eq(result, "No keys found.")
+end
+
+# =========================================================================
+# KMS Tests — Aliases
+# =========================================================================
+
+| let kms_list_aliases_json = "{\"Aliases\":[{\"AliasName\":\"alias/my-app-key\",\"AliasArn\":\"arn:aws:kms:us-east-1:123456789012:alias/my-app-key\",\"TargetKeyId\":\"key-001\"},{\"AliasName\":\"alias/backup-key\",\"AliasArn\":\"arn:aws:kms:us-east-1:123456789012:alias/backup-key\",\"TargetKeyId\":\"key-002\"},{\"AliasName\":\"alias/aws/s3\",\"AliasArn\":\"arn:aws:kms:us-east-1:123456789012:alias/aws/s3\"}]}" |
+
+def test_kms_aliases_count():
+  let response = json::json_parse(kms_list_aliases_json)
+  | let result = aws::kms::aliases(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_kms_alias_names():
+  let response = json::json_parse(kms_list_aliases_json)
+  | let names = aws::kms::alias_names(response)
+  | assert_eq(names, ["alias/my-app-key", "alias/backup-key", "alias/aws/s3"])
+end
+
+def test_kms_customer_aliases():
+  let response = json::json_parse(kms_list_aliases_json)
+  | let result = aws::kms::customer_aliases(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["AliasName"], "alias/my-app-key")
+  | assert_eq(result[1]["AliasName"], "alias/backup-key")
+end
+
+def test_kms_aliases_to_markdown_table():
+  let response = json::json_parse(kms_list_aliases_json)
+  | let result = aws::kms::aliases_to_markdown_table(response)
+  | assert(contains(result, "| AliasName | TargetKeyId | AliasArn |"))
+  | assert(contains(result, "alias/my-app-key"))
+  | assert(contains(result, "key-001"))
+end
+
+def test_kms_aliases_to_markdown_table_empty():
+  let response = json::json_parse("{\"Aliases\":[]}")
+  | let result = aws::kms::aliases_to_markdown_table(response)
+  | assert_eq(result, "No aliases found.")
+end
+
+# =========================================================================
+# CloudTrail Tests
+# =========================================================================
+
+| let ct_trails_json = "{\"trailList\":[{\"Name\":\"management-events\",\"S3BucketName\":\"my-audit-logs\",\"IsMultiRegionTrail\":true,\"LogFileValidationEnabled\":true,\"HomeRegion\":\"us-east-1\",\"TrailARN\":\"arn:aws:cloudtrail:us-east-1:123456789012:trail/management-events\"},{\"Name\":\"data-events\",\"S3BucketName\":\"my-data-logs\",\"IsMultiRegionTrail\":false,\"LogFileValidationEnabled\":true,\"HomeRegion\":\"us-east-1\",\"TrailARN\":\"arn:aws:cloudtrail:us-east-1:123456789012:trail/data-events\"},{\"Name\":\"legacy-trail\",\"S3BucketName\":\"old-bucket\",\"IsMultiRegionTrail\":false,\"LogFileValidationEnabled\":false,\"HomeRegion\":\"us-west-2\",\"TrailARN\":\"arn:aws:cloudtrail:us-west-2:123456789012:trail/legacy-trail\"}]}" |
+
+def test_ct_trails_count():
+  let response = json::json_parse(ct_trails_json)
+  | let result = aws::cloudtrail::trails(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ct_trail_names():
+  let response = json::json_parse(ct_trails_json)
+  | let names = aws::cloudtrail::trail_names(response)
+  | assert_eq(names, ["management-events", "data-events", "legacy-trail"])
+end
+
+def test_ct_multi_region_trails():
+  let response = json::json_parse(ct_trails_json)
+  | let result = aws::cloudtrail::multi_region_trails(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Name"], "management-events")
+end
+
+def test_ct_validated_trails():
+  let response = json::json_parse(ct_trails_json)
+  | let result = aws::cloudtrail::validated_trails(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Name"], "management-events")
+  | assert_eq(result[1]["Name"], "data-events")
+end
+
+def test_ct_trails_empty():
+  let response = json::json_parse("{\"trailList\":[]}")
+  | let result = aws::cloudtrail::trails(response)
+  | assert_empty(result)
+end
+
+def test_ct_trails_to_markdown_table():
+  let response = json::json_parse(ct_trails_json)
+  | let result = aws::cloudtrail::trails_to_markdown_table(response)
+  | assert(contains(result, "| Name | S3Bucket | MultiRegion | LogValidation | HomeRegion |"))
+  | assert(contains(result, "management-events"))
+  | assert(contains(result, "my-audit-logs"))
+  | assert(contains(result, "true"))
+  | assert(contains(result, "false"))
+  | assert(contains(result, "us-east-1"))
+end
+
+def test_ct_trails_to_markdown_table_empty():
+  let response = json::json_parse("{\"trailList\":[]}")
+  | let result = aws::cloudtrail::trails_to_markdown_table(response)
+  | assert_eq(result, "No trails found.")
+end
+
+# =========================================================================
+# SES Tests — Identities
+# =========================================================================
+
+| let ses_identities_json = "{\"Identities\":[\"example.com\",\"admin@example.com\",\"noreply@example.com\"]}" |
+
+def test_ses_identities_count():
+  let response = json::json_parse(ses_identities_json)
+  | let count = aws::ses::identity_count(response)
+  | assert_eq(count, 3)
+end
+
+def test_ses_identities_list():
+  let response = json::json_parse(ses_identities_json)
+  | let result = aws::ses::identities(response)
+  | assert_eq(result, ["example.com", "admin@example.com", "noreply@example.com"])
+end
+
+def test_ses_identities_empty():
+  let response = json::json_parse("{\"Identities\":[]}")
+  | let result = aws::ses::identities(response)
+  | assert_empty(result)
+end
+
+def test_ses_identities_to_markdown_table():
+  let response = json::json_parse(ses_identities_json)
+  | let result = aws::ses::identities_to_markdown_table(response)
+  | assert(contains(result, "| Identity |"))
+  | assert(contains(result, "example.com"))
+  | assert(contains(result, "admin@example.com"))
+end
+
+def test_ses_identities_to_markdown_table_empty():
+  let response = json::json_parse("{\"Identities\":[]}")
+  | let result = aws::ses::identities_to_markdown_table(response)
+  | assert_eq(result, "No identities found.")
+end
+
+# =========================================================================
+# SES Tests — Send Statistics
+# =========================================================================
+
+| let ses_stats_json = "{\"SendDataPoints\":[{\"Timestamp\":\"2024-06-15T00:00:00Z\",\"DeliveryAttempts\":500,\"Bounces\":10,\"Complaints\":2,\"Rejects\":1},{\"Timestamp\":\"2024-06-14T00:00:00Z\",\"DeliveryAttempts\":450,\"Bounces\":8,\"Complaints\":1,\"Rejects\":0},{\"Timestamp\":\"2024-06-13T00:00:00Z\",\"DeliveryAttempts\":600,\"Bounces\":15,\"Complaints\":3,\"Rejects\":2}]}" |
+
+def test_ses_total_deliveries():
+  let response = json::json_parse(ses_stats_json)
+  | let total = aws::ses::total_deliveries(response)
+  | assert_eq(total, 1550)
+end
+
+def test_ses_total_bounces():
+  let response = json::json_parse(ses_stats_json)
+  | let total = aws::ses::total_bounces(response)
+  | assert_eq(total, 33)
+end
+
+def test_ses_total_complaints():
+  let response = json::json_parse(ses_stats_json)
+  | let total = aws::ses::total_complaints(response)
+  | assert_eq(total, 6)
+end
+
+def test_ses_send_statistics_empty():
+  let response = json::json_parse("{\"SendDataPoints\":[]}")
+  | let result = aws::ses::send_statistics(response)
+  | assert_empty(result)
+end
+
+def test_ses_send_statistics_to_markdown_table():
+  let response = json::json_parse(ses_stats_json)
+  | let result = aws::ses::send_statistics_to_markdown_table(response)
+  | assert(contains(result, "| Timestamp | DeliveryAttempts | Bounces | Complaints | Rejects |"))
+  | assert(contains(result, "2024-06-15T00:00:00Z"))
+  | assert(contains(result, "500"))
+  | assert(contains(result, "10"))
+end
+
+def test_ses_send_statistics_to_markdown_table_empty():
+  let response = json::json_parse("{\"SendDataPoints\":[]}")
+  | let result = aws::ses::send_statistics_to_markdown_table(response)
+  | assert_eq(result, "No send statistics found.")
+end
+
+# =========================================================================
+# Redshift Tests
+# =========================================================================
+
+| let rs_clusters_json = "{\"Clusters\":[{\"ClusterIdentifier\":\"prod-dw\",\"NodeType\":\"ra3.xlplus\",\"ClusterStatus\":\"available\",\"DBName\":\"analytics\",\"NumberOfNodes\":2,\"PubliclyAccessible\":false},{\"ClusterIdentifier\":\"staging-dw\",\"NodeType\":\"dc2.large\",\"ClusterStatus\":\"available\",\"DBName\":\"staging\",\"NumberOfNodes\":1,\"PubliclyAccessible\":false},{\"ClusterIdentifier\":\"paused-dw\",\"NodeType\":\"ra3.xlplus\",\"ClusterStatus\":\"paused\",\"DBName\":\"archive\",\"NumberOfNodes\":2,\"PubliclyAccessible\":false}]}" |
+
+def test_rs_clusters_count():
+  let response = json::json_parse(rs_clusters_json)
+  | let result = aws::redshift::clusters(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_rs_available_clusters():
+  let response = json::json_parse(rs_clusters_json)
+  | let result = aws::redshift::available_clusters(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["ClusterIdentifier"], "prod-dw")
+  | assert_eq(result[1]["ClusterIdentifier"], "staging-dw")
+end
+
+def test_rs_cluster_identifiers():
+  let response = json::json_parse(rs_clusters_json)
+  | let ids = aws::redshift::cluster_identifiers(response)
+  | assert_eq(ids, ["prod-dw", "staging-dw", "paused-dw"])
+end
+
+def test_rs_clusters_empty():
+  let response = json::json_parse("{\"Clusters\":[]}")
+  | let result = aws::redshift::clusters(response)
+  | assert_empty(result)
+end
+
+def test_rs_clusters_to_markdown_table():
+  let response = json::json_parse(rs_clusters_json)
+  | let result = aws::redshift::clusters_to_markdown_table(response)
+  | assert(contains(result, "| ClusterIdentifier | NodeType | Status | DBName | Nodes | PubliclyAccessible |"))
+  | assert(contains(result, "prod-dw"))
+  | assert(contains(result, "ra3.xlplus"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "analytics"))
+  | assert(contains(result, "2"))
+end
+
+def test_rs_clusters_to_markdown_table_empty():
+  let response = json::json_parse("{\"Clusters\":[]}")
+  | let result = aws::redshift::clusters_to_markdown_table(response)
+  | assert_eq(result, "No clusters found.")
+end
+
+# =========================================================================
+# CodePipeline Tests — Pipelines
+# =========================================================================
+
+| let cp_list_pipelines_json = "{\"pipelines\":[{\"name\":\"app-deploy\",\"version\":3,\"created\":\"2024-01-01T00:00:00Z\",\"updated\":\"2024-06-01T00:00:00Z\"},{\"name\":\"infra-pipeline\",\"version\":1,\"created\":\"2024-02-01T00:00:00Z\",\"updated\":\"2024-05-01T00:00:00Z\"},{\"name\":\"hotfix-pipeline\",\"version\":2,\"created\":\"2024-03-01T00:00:00Z\",\"updated\":\"2024-04-01T00:00:00Z\"}]}" |
+
+def test_cp_pipelines_count():
+  let response = json::json_parse(cp_list_pipelines_json)
+  | let result = aws::codepipeline::pipelines(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cp_pipeline_names():
+  let response = json::json_parse(cp_list_pipelines_json)
+  | let names = aws::codepipeline::pipeline_names(response)
+  | assert_eq(names, ["app-deploy", "infra-pipeline", "hotfix-pipeline"])
+end
+
+def test_cp_pipelines_empty():
+  let response = json::json_parse("{\"pipelines\":[]}")
+  | let result = aws::codepipeline::pipelines(response)
+  | assert_empty(result)
+end
+
+def test_cp_pipelines_to_markdown_table():
+  let response = json::json_parse(cp_list_pipelines_json)
+  | let result = aws::codepipeline::pipelines_to_markdown_table(response)
+  | assert(contains(result, "| Name | Version | Updated |"))
+  | assert(contains(result, "app-deploy"))
+  | assert(contains(result, "3"))
+  | assert(contains(result, "2024-06-01T00:00:00Z"))
+end
+
+def test_cp_pipelines_to_markdown_table_empty():
+  let response = json::json_parse("{\"pipelines\":[]}")
+  | let result = aws::codepipeline::pipelines_to_markdown_table(response)
+  | assert_eq(result, "No pipelines found.")
+end
+
+# =========================================================================
+# CodePipeline Tests — Stage States
+# =========================================================================
+
+| let cp_stage_states_json = "{\"pipelineName\":\"app-deploy\",\"stageStates\":[{\"stageName\":\"Source\",\"latestExecution\":{\"status\":\"Succeeded\",\"pipelineExecutionId\":\"exec-001\"}},{\"stageName\":\"Build\",\"latestExecution\":{\"status\":\"InProgress\",\"pipelineExecutionId\":\"exec-001\"}},{\"stageName\":\"Deploy\",\"latestExecution\":{\"status\":\"Failed\",\"pipelineExecutionId\":\"exec-000\"}}]}" |
+
+def test_cp_stage_states_count():
+  let response = json::json_parse(cp_stage_states_json)
+  | let result = aws::codepipeline::stage_states(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cp_failed_stages():
+  let response = json::json_parse(cp_stage_states_json)
+  | let result = aws::codepipeline::failed_stages(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["stageName"], "Deploy")
+end
+
+def test_cp_in_progress_stages():
+  let response = json::json_parse(cp_stage_states_json)
+  | let result = aws::codepipeline::in_progress_stages(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["stageName"], "Build")
+end
+
+def test_cp_stage_states_to_markdown_table():
+  let response = json::json_parse(cp_stage_states_json)
+  | let result = aws::codepipeline::stage_states_to_markdown_table(response)
+  | assert(contains(result, "| StageName | Status |"))
+  | assert(contains(result, "Source"))
+  | assert(contains(result, "Succeeded"))
+  | assert(contains(result, "Build"))
+  | assert(contains(result, "InProgress"))
+  | assert(contains(result, "Failed"))
+end
+
+def test_cp_stage_states_to_markdown_table_empty():
+  let response = json::json_parse("{\"stageStates\":[]}")
+  | let result = aws::codepipeline::stage_states_to_markdown_table(response)
+  | assert_eq(result, "No stage states found.")
+end
+
+# =========================================================================
+# CodeBuild Tests — Projects
+# =========================================================================
+
+| let cb_list_projects_json = "{\"projects\":[\"backend-build\",\"frontend-build\",\"integration-tests\",\"deploy-job\"]}" |
+
+def test_cb_project_count():
+  let response = json::json_parse(cb_list_projects_json)
+  | let count = aws::codebuild::project_count(response)
+  | assert_eq(count, 4)
+end
+
+def test_cb_project_names():
+  let response = json::json_parse(cb_list_projects_json)
+  | let names = aws::codebuild::project_names(response)
+  | assert_eq(names, ["backend-build", "frontend-build", "integration-tests", "deploy-job"])
+end
+
+def test_cb_projects_empty():
+  let response = json::json_parse("{\"projects\":[]}")
+  | let result = aws::codebuild::project_names(response)
+  | assert_empty(result)
+end
+
+def test_cb_project_names_to_markdown_table():
+  let response = json::json_parse(cb_list_projects_json)
+  | let result = aws::codebuild::project_names_to_markdown_table(response)
+  | assert(contains(result, "| ProjectName |"))
+  | assert(contains(result, "backend-build"))
+  | assert(contains(result, "frontend-build"))
+end
+
+def test_cb_project_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"projects\":[]}")
+  | let result = aws::codebuild::project_names_to_markdown_table(response)
+  | assert_eq(result, "No projects found.")
+end
+
+# =========================================================================
+# CodeBuild Tests — Builds
+# =========================================================================
+
+| let cb_builds_json = "{\"builds\":[{\"id\":\"backend-build:build-001\",\"projectName\":\"backend-build\",\"buildStatus\":\"SUCCEEDED\",\"startTime\":\"2024-06-15T10:00:00Z\",\"endTime\":\"2024-06-15T10:05:00Z\"},{\"id\":\"frontend-build:build-002\",\"projectName\":\"frontend-build\",\"buildStatus\":\"FAILED\",\"startTime\":\"2024-06-15T10:10:00Z\",\"endTime\":\"2024-06-15T10:12:00Z\"},{\"id\":\"backend-build:build-003\",\"projectName\":\"backend-build\",\"buildStatus\":\"IN_PROGRESS\",\"startTime\":\"2024-06-15T11:00:00Z\"}]}" |
+
+def test_cb_builds_count():
+  let response = json::json_parse(cb_builds_json)
+  | let result = aws::codebuild::builds(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_cb_succeeded_builds():
+  let response = json::json_parse(cb_builds_json)
+  | let result = aws::codebuild::succeeded_builds(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["id"], "backend-build:build-001")
+end
+
+def test_cb_failed_builds():
+  let response = json::json_parse(cb_builds_json)
+  | let result = aws::codebuild::failed_builds(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["projectName"], "frontend-build")
+end
+
+def test_cb_builds_by_status_in_progress():
+  let response = json::json_parse(cb_builds_json)
+  | let result = aws::codebuild::builds_by_status(response, "IN_PROGRESS")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["id"], "backend-build:build-003")
+end
+
+def test_cb_builds_empty():
+  let response = json::json_parse("{\"builds\":[]}")
+  | let result = aws::codebuild::builds(response)
+  | assert_empty(result)
+end
+
+def test_cb_builds_to_markdown_table():
+  let response = json::json_parse(cb_builds_json)
+  | let result = aws::codebuild::builds_to_markdown_table(response)
+  | assert(contains(result, "| Id | ProjectName | Status | StartTime | EndTime |"))
+  | assert(contains(result, "backend-build:build-001"))
+  | assert(contains(result, "SUCCEEDED"))
+  | assert(contains(result, "FAILED"))
+  | assert(contains(result, "IN_PROGRESS"))
+end
+
+def test_cb_builds_to_markdown_table_empty():
+  let response = json::json_parse("{\"builds\":[]}")
+  | let result = aws::codebuild::builds_to_markdown_table(response)
+  | assert_eq(result, "No builds found.")
+end
+
+# =========================================================================
+# WAF Tests
+# =========================================================================
+
+| let waf_web_acls_json = "{\"WebACLs\":[{\"Name\":\"prod-wacl\",\"Id\":\"wacl-001\",\"Description\":\"Production WAF ACL\",\"ARN\":\"arn:aws:wafv2:us-east-1:123456789012:regional/webacl/prod-wacl/wacl-001\",\"LockToken\":\"token-001\"},{\"Name\":\"staging-wacl\",\"Id\":\"wacl-002\",\"Description\":\"Staging WAF ACL\",\"ARN\":\"arn:aws:wafv2:us-east-1:123456789012:regional/webacl/staging-wacl/wacl-002\",\"LockToken\":\"token-002\"},{\"Name\":\"api-wacl\",\"Id\":\"wacl-003\",\"Description\":\"API Gateway WAF\",\"ARN\":\"arn:aws:wafv2:us-east-1:123456789012:regional/webacl/api-wacl/wacl-003\",\"LockToken\":\"token-003\"}]}" |
+
+def test_waf_web_acls_count():
+  let response = json::json_parse(waf_web_acls_json)
+  | let result = aws::waf::web_acls(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_waf_web_acl_names():
+  let response = json::json_parse(waf_web_acls_json)
+  | let names = aws::waf::web_acl_names(response)
+  | assert_eq(names, ["prod-wacl", "staging-wacl", "api-wacl"])
+end
+
+def test_waf_web_acls_empty():
+  let response = json::json_parse("{\"WebACLs\":[]}")
+  | let result = aws::waf::web_acls(response)
+  | assert_empty(result)
+end
+
+def test_waf_web_acls_to_markdown_table():
+  let response = json::json_parse(waf_web_acls_json)
+  | let result = aws::waf::web_acls_to_markdown_table(response)
+  | assert(contains(result, "| Name | Id | Description | ARN |"))
+  | assert(contains(result, "prod-wacl"))
+  | assert(contains(result, "wacl-001"))
+  | assert(contains(result, "Production WAF ACL"))
+end
+
+def test_waf_web_acls_to_markdown_table_empty():
+  let response = json::json_parse("{\"WebACLs\":[]}")
+  | let result = aws::waf::web_acls_to_markdown_table(response)
+  | assert_eq(result, "No Web ACLs found.")
+end
+
+# =========================================================================
+# Glue Tests — Jobs
+# =========================================================================
+
+| let glue_jobs_json = "{\"Jobs\":[{\"Name\":\"etl-orders\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"MaxRetries\":0,\"Timeout\":2880},{\"Name\":\"etl-users\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"MaxRetries\":1,\"Timeout\":1440},{\"Name\":\"export-reports\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"MaxRetries\":0,\"Timeout\":60}]}" |
+
+def test_glue_jobs_count():
+  let response = json::json_parse(glue_jobs_json)
+  | let result = aws::glue::jobs(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_glue_job_names():
+  let response = json::json_parse(glue_jobs_json)
+  | let names = aws::glue::job_names(response)
+  | assert_eq(names, ["etl-orders", "etl-users", "export-reports"])
+end
+
+def test_glue_jobs_empty():
+  let response = json::json_parse("{\"Jobs\":[]}")
+  | let result = aws::glue::jobs(response)
+  | assert_empty(result)
+end
+
+def test_glue_jobs_to_markdown_table():
+  let response = json::json_parse(glue_jobs_json)
+  | let result = aws::glue::jobs_to_markdown_table(response)
+  | assert(contains(result, "| Name | Role | MaxRetries | Timeout |"))
+  | assert(contains(result, "etl-orders"))
+  | assert(contains(result, "2880"))
+  | assert(contains(result, "etl-users"))
+end
+
+def test_glue_jobs_to_markdown_table_empty():
+  let response = json::json_parse("{\"Jobs\":[]}")
+  | let result = aws::glue::jobs_to_markdown_table(response)
+  | assert_eq(result, "No jobs found.")
+end
+
+# =========================================================================
+# Glue Tests — Crawlers
+# =========================================================================
+
+| let glue_crawlers_json = "{\"Crawlers\":[{\"Name\":\"s3-orders-crawler\",\"State\":\"READY\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"LastCrawl\":{\"Status\":\"SUCCEEDED\",\"MessagePrefix\":\"Succeeded\"}},{\"Name\":\"rds-users-crawler\",\"State\":\"RUNNING\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"LastCrawl\":{\"Status\":\"SUCCEEDED\",\"MessagePrefix\":\"Succeeded\"}},{\"Name\":\"legacy-crawler\",\"State\":\"READY\",\"Role\":\"arn:aws:iam::123456789012:role/glue-role\",\"LastCrawl\":{\"Status\":\"FAILED\",\"MessagePrefix\":\"Error\"}}]}" |
+
+def test_glue_crawlers_count():
+  let response = json::json_parse(glue_crawlers_json)
+  | let result = aws::glue::crawlers(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_glue_crawler_names():
+  let response = json::json_parse(glue_crawlers_json)
+  | let names = aws::glue::crawler_names(response)
+  | assert_eq(names, ["s3-orders-crawler", "rds-users-crawler", "legacy-crawler"])
+end
+
+def test_glue_ready_crawlers():
+  let response = json::json_parse(glue_crawlers_json)
+  | let result = aws::glue::ready_crawlers(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0]["Name"], "s3-orders-crawler")
+  | assert_eq(result[1]["Name"], "legacy-crawler")
+end
+
+def test_glue_running_crawlers():
+  let response = json::json_parse(glue_crawlers_json)
+  | let result = aws::glue::running_crawlers(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Name"], "rds-users-crawler")
+end
+
+def test_glue_crawlers_empty():
+  let response = json::json_parse("{\"Crawlers\":[]}")
+  | let result = aws::glue::crawlers(response)
+  | assert_empty(result)
+end
+
+def test_glue_crawlers_to_markdown_table():
+  let response = json::json_parse(glue_crawlers_json)
+  | let result = aws::glue::crawlers_to_markdown_table(response)
+  | assert(contains(result, "| Name | State | Role | LastStatus |"))
+  | assert(contains(result, "s3-orders-crawler"))
+  | assert(contains(result, "READY"))
+  | assert(contains(result, "RUNNING"))
+  | assert(contains(result, "SUCCEEDED"))
+  | assert(contains(result, "FAILED"))
+end
+
+def test_glue_crawlers_to_markdown_table_empty():
+  let response = json::json_parse("{\"Crawlers\":[]}")
+  | let result = aws::glue::crawlers_to_markdown_table(response)
+  | assert_eq(result, "No crawlers found.")
+end
+
+| let ec2_internet_gateways_json = "{\"InternetGateways\":[{\"InternetGatewayId\":\"igw-001\",\"Attachments\":[{\"VpcId\":\"vpc-001\",\"State\":\"available\"}],\"Tags\":[{\"Key\":\"Name\",\"Value\":\"main-igw\"}]},{\"InternetGatewayId\":\"igw-002\",\"Attachments\":[{\"VpcId\":\"vpc-002\",\"State\":\"available\"}],\"Tags\":[{\"Key\":\"Name\",\"Value\":\"staging-igw\"}]},{\"InternetGatewayId\":\"igw-003\",\"Attachments\":[],\"Tags\":[]}]}" |
+
+def test_ec2_internet_gateways():
+  let response = json::json_parse(ec2_internet_gateways_json)
+  | let result = aws::ec2::internet_gateways(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_internet_gateways_by_vpc():
+  let response = json::json_parse(ec2_internet_gateways_json)
+  | let result = aws::ec2::internet_gateways_by_vpc(response, "vpc-001")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["InternetGatewayId"], "igw-001")
+end
+
+def test_ec2_internet_gateway_ids():
+  let response = json::json_parse(ec2_internet_gateways_json)
+  | let result = aws::ec2::internet_gateway_ids(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "igw-001")
+end
+
+def test_ec2_internet_gateways_to_markdown_table():
+  let response = json::json_parse(ec2_internet_gateways_json)
+  | let result = aws::ec2::internet_gateways_to_markdown_table(response)
+  | assert(contains(result, "| InternetGatewayId | AttachedVpc | State | Name |"))
+  | assert(contains(result, "igw-001"))
+  | assert(contains(result, "vpc-001"))
+  | assert(contains(result, "main-igw"))
+end
+
+def test_ec2_internet_gateways_to_markdown_table_empty():
+  let response = json::json_parse("{\"InternetGateways\":[]}")
+  | let result = aws::ec2::internet_gateways_to_markdown_table(response)
+  | assert_eq(result, "No internet gateways found.")
+end
+
+| let ec2_vpc_endpoints_json = "{\"VpcEndpoints\":[{\"VpcEndpointId\":\"vpce-001\",\"VpcId\":\"vpc-001\",\"ServiceName\":\"com.amazonaws.us-east-1.s3\",\"VpcEndpointType\":\"Gateway\",\"State\":\"available\"},{\"VpcEndpointId\":\"vpce-002\",\"VpcId\":\"vpc-001\",\"ServiceName\":\"com.amazonaws.us-east-1.dynamodb\",\"VpcEndpointType\":\"Gateway\",\"State\":\"available\"},{\"VpcEndpointId\":\"vpce-003\",\"VpcId\":\"vpc-002\",\"ServiceName\":\"com.amazonaws.us-east-1.ec2\",\"VpcEndpointType\":\"Interface\",\"State\":\"available\"}]}" |
+
+def test_ec2_vpc_endpoints():
+  let response = json::json_parse(ec2_vpc_endpoints_json)
+  | let result = aws::ec2::vpc_endpoints(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ec2_vpc_endpoints_by_vpc():
+  let response = json::json_parse(ec2_vpc_endpoints_json)
+  | let result = aws::ec2::vpc_endpoints_by_vpc(response, "vpc-001")
+  | assert_eq(len(result), 2)
+end
+
+def test_ec2_vpc_endpoints_by_type():
+  let response = json::json_parse(ec2_vpc_endpoints_json)
+  | let result = aws::ec2::vpc_endpoints_by_type(response, "Gateway")
+  | assert_eq(len(result), 2)
+end
+
+def test_ec2_vpc_endpoints_to_markdown_table():
+  let response = json::json_parse(ec2_vpc_endpoints_json)
+  | let result = aws::ec2::vpc_endpoints_to_markdown_table(response)
+  | assert(contains(result, "| VpcEndpointId | VpcId | ServiceName | Type | State |"))
+  | assert(contains(result, "vpce-001"))
+  | assert(contains(result, "com.amazonaws.us-east-1.s3"))
+  | assert(contains(result, "Gateway"))
+end
+
+def test_ec2_vpc_endpoints_to_markdown_table_empty():
+  let response = json::json_parse("{\"VpcEndpoints\":[]}")
+  | let result = aws::ec2::vpc_endpoints_to_markdown_table(response)
+  | assert_eq(result, "No VPC endpoints found.")
+end
+
+| let lambda_esm_json = "{\"EventSourceMappings\":[{\"UUID\":\"uuid-001\",\"FunctionArn\":\"arn:aws:lambda:us-east-1:123456789012:function:processor\",\"EventSourceArn\":\"arn:aws:sqs:us-east-1:123456789012:my-queue\",\"State\":\"Enabled\",\"BatchSize\":10},{\"UUID\":\"uuid-002\",\"FunctionArn\":\"arn:aws:lambda:us-east-1:123456789012:function:writer\",\"EventSourceArn\":\"arn:aws:kinesis:us-east-1:123456789012:stream/my-stream\",\"State\":\"Disabled\",\"BatchSize\":100}]}" |
+
+def test_lambda_event_source_mappings():
+  let response = json::json_parse(lambda_esm_json)
+  | let result = aws::lambda::event_source_mappings(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_lambda_enabled_event_source_mappings():
+  let response = json::json_parse(lambda_esm_json)
+  | let result = aws::lambda::enabled_event_source_mappings(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["UUID"], "uuid-001")
+end
+
+def test_lambda_event_source_mappings_to_markdown_table():
+  let response = json::json_parse(lambda_esm_json)
+  | let result = aws::lambda::event_source_mappings_to_markdown_table(response)
+  | assert(contains(result, "| UUID | FunctionArn | EventSourceArn | State | BatchSize |"))
+  | assert(contains(result, "uuid-001"))
+  | assert(contains(result, "Enabled"))
+  | assert(contains(result, "Disabled"))
+end
+
+def test_lambda_event_source_mappings_to_markdown_table_empty():
+  let response = json::json_parse("{\"EventSourceMappings\":[]}")
+  | let result = aws::lambda::event_source_mappings_to_markdown_table(response)
+  | assert_eq(result, "No event source mappings found.")
+end
+
+| let lambda_layers_json = "{\"Layers\":[{\"LayerName\":\"my-deps\",\"LayerArn\":\"arn:aws:lambda:us-east-1:123456789012:layer:my-deps\",\"LatestMatchingVersion\":{\"LayerVersionArn\":\"arn:aws:lambda:us-east-1:123456789012:layer:my-deps:3\",\"Version\":3,\"CompatibleRuntimes\":[\"python3.11\",\"python3.10\"]}},{\"LayerName\":\"shared-utils\",\"LayerArn\":\"arn:aws:lambda:us-east-1:123456789012:layer:shared-utils\",\"LatestMatchingVersion\":{\"LayerVersionArn\":\"arn:aws:lambda:us-east-1:123456789012:layer:shared-utils:1\",\"Version\":1,\"CompatibleRuntimes\":[\"nodejs18.x\"]}}]}" |
+
+def test_lambda_layers():
+  let response = json::json_parse(lambda_layers_json)
+  | let result = aws::lambda::layers(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_lambda_layer_names():
+  let response = json::json_parse(lambda_layers_json)
+  | let result = aws::lambda::layer_names(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "my-deps")
+  | assert_eq(result[1], "shared-utils")
+end
+
+def test_lambda_layers_to_markdown_table():
+  let response = json::json_parse(lambda_layers_json)
+  | let result = aws::lambda::layers_to_markdown_table(response)
+  | assert(contains(result, "| LayerName | LayerArn | LatestVersion | CompatibleRuntimes |"))
+  | assert(contains(result, "my-deps"))
+  | assert(contains(result, "shared-utils"))
+end
+
+def test_lambda_layers_to_markdown_table_empty():
+  let response = json::json_parse("{\"Layers\":[]}")
+  | let result = aws::lambda::layers_to_markdown_table(response)
+  | assert_eq(result, "No layers found.")
+end
+
+| let iam_access_keys_json = "{\"AccessKeyMetadata\":[{\"UserName\":\"alice\",\"AccessKeyId\":\"AKIA001\",\"Status\":\"Active\",\"CreateDate\":\"2024-01-01T00:00:00Z\"},{\"UserName\":\"bob\",\"AccessKeyId\":\"AKIA002\",\"Status\":\"Inactive\",\"CreateDate\":\"2023-06-01T00:00:00Z\"},{\"UserName\":\"carol\",\"AccessKeyId\":\"AKIA003\",\"Status\":\"Active\",\"CreateDate\":\"2024-03-01T00:00:00Z\"}]}" |
+
+def test_iam_access_keys():
+  let response = json::json_parse(iam_access_keys_json)
+  | let result = aws::iam::access_keys(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_iam_active_access_keys():
+  let response = json::json_parse(iam_access_keys_json)
+  | let result = aws::iam::active_access_keys(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_iam_access_keys_to_markdown_table():
+  let response = json::json_parse(iam_access_keys_json)
+  | let result = aws::iam::access_keys_to_markdown_table(response)
+  | assert(contains(result, "| UserName | AccessKeyId | Status | CreateDate |"))
+  | assert(contains(result, "alice"))
+  | assert(contains(result, "AKIA001"))
+  | assert(contains(result, "Active"))
+  | assert(contains(result, "Inactive"))
+end
+
+def test_iam_access_keys_to_markdown_table_empty():
+  let response = json::json_parse("{\"AccessKeyMetadata\":[]}")
+  | let result = aws::iam::access_keys_to_markdown_table(response)
+  | assert_eq(result, "No access keys found.")
+end
+
+| let iam_mfa_devices_json = "{\"MFADevices\":[{\"UserName\":\"alice\",\"SerialNumber\":\"arn:aws:iam::123456789012:mfa/alice\",\"EnableDate\":\"2024-01-15T00:00:00Z\"},{\"UserName\":\"carol\",\"SerialNumber\":\"arn:aws:iam::123456789012:mfa/carol\",\"EnableDate\":\"2024-03-10T00:00:00Z\"}]}" |
+
+def test_iam_mfa_devices():
+  let response = json::json_parse(iam_mfa_devices_json)
+  | let result = aws::iam::mfa_devices(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_iam_mfa_device_usernames():
+  let response = json::json_parse(iam_mfa_devices_json)
+  | let result = aws::iam::mfa_device_usernames(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "alice")
+end
+
+def test_iam_mfa_devices_to_markdown_table():
+  let response = json::json_parse(iam_mfa_devices_json)
+  | let result = aws::iam::mfa_devices_to_markdown_table(response)
+  | assert(contains(result, "| UserName | SerialNumber | EnableDate |"))
+  | assert(contains(result, "alice"))
+  | assert(contains(result, "carol"))
+end
+
+def test_iam_mfa_devices_to_markdown_table_empty():
+  let response = json::json_parse("{\"MFADevices\":[]}")
+  | let result = aws::iam::mfa_devices_to_markdown_table(response)
+  | assert_eq(result, "No MFA devices found.")
+end
+
+| let ecs_task_def_arns_json = "{\"taskDefinitionArns\":[\"arn:aws:ecs:us-east-1:123456789012:task-definition/web:3\",\"arn:aws:ecs:us-east-1:123456789012:task-definition/worker:5\",\"arn:aws:ecs:us-east-1:123456789012:task-definition/api:2\"]}" |
+
+def test_ecs_task_definition_arns():
+  let response = json::json_parse(ecs_task_def_arns_json)
+  | let result = aws::ecs::task_definition_arns(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_ecs_task_definition_count():
+  let response = json::json_parse(ecs_task_def_arns_json)
+  | let result = aws::ecs::task_definition_count(response)
+  | assert_eq(result, 3)
+end
+
+def test_ecs_task_definition_arns_to_markdown_table():
+  let response = json::json_parse(ecs_task_def_arns_json)
+  | let result = aws::ecs::task_definition_arns_to_markdown_table(response)
+  | assert(contains(result, "| TaskDefinitionArn |"))
+  | assert(contains(result, "task-definition/web:3"))
+end
+
+def test_ecs_task_definition_arns_to_markdown_table_empty():
+  let response = json::json_parse("{\"taskDefinitionArns\":[]}")
+  | let result = aws::ecs::task_definition_arns_to_markdown_table(response)
+  | assert_eq(result, "No task definitions found.")
+end
+
+| let ecs_task_def_json = "{\"taskDefinition\":{\"taskDefinitionArn\":\"arn:aws:ecs:us-east-1:123456789012:task-definition/web:3\",\"family\":\"web\",\"revision\":3,\"status\":\"ACTIVE\",\"cpu\":\"256\",\"memory\":\"512\",\"containerDefinitions\":[{\"name\":\"nginx\"},{\"name\":\"app\"}]}}" |
+
+def test_ecs_task_definition():
+  let response = json::json_parse(ecs_task_def_json)
+  | let result = aws::ecs::task_definition(response)
+  | assert_eq(result["family"], "web")
+  | assert_eq(result["revision"], 3)
+end
+
+def test_ecs_task_definition_info_to_markdown_table():
+  let response = json::json_parse(ecs_task_def_json)
+  | let result = aws::ecs::task_definition_info_to_markdown_table(response)
+  | assert(contains(result, "| Family | Revision | Status | Cpu | Memory | Containers |"))
+  | assert(contains(result, "web"))
+  | assert(contains(result, "ACTIVE"))
+  | assert(contains(result, "2"))
+end
+
+| let dynamodb_backups_json = "{\"BackupSummaries\":[{\"TableName\":\"users\",\"BackupArn\":\"arn:aws:dynamodb:us-east-1:123456789012:table/users/backup/01700000000000-aaaaaaaa\",\"BackupName\":\"users-backup-1\",\"BackupStatus\":\"AVAILABLE\",\"BackupType\":\"USER\",\"BackupCreationDateTime\":\"2024-01-15T10:00:00Z\"},{\"TableName\":\"orders\",\"BackupArn\":\"arn:aws:dynamodb:us-east-1:123456789012:table/orders/backup/01700000000001-bbbbbbbb\",\"BackupName\":\"orders-backup-1\",\"BackupStatus\":\"AVAILABLE\",\"BackupType\":\"USER\",\"BackupCreationDateTime\":\"2024-01-16T10:00:00Z\"},{\"TableName\":\"users\",\"BackupArn\":\"arn:aws:dynamodb:us-east-1:123456789012:table/users/backup/01700000000002-cccccccc\",\"BackupName\":\"users-backup-2\",\"BackupStatus\":\"DELETED\",\"BackupType\":\"USER\",\"BackupCreationDateTime\":\"2024-01-10T10:00:00Z\"}]}" |
+
+def test_dynamodb_backups():
+  let response = json::json_parse(dynamodb_backups_json)
+  | let result = aws::dynamodb::backups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_dynamodb_backups_by_table():
+  let response = json::json_parse(dynamodb_backups_json)
+  | let result = aws::dynamodb::backups_by_table(response, "users")
+  | assert_eq(len(result), 2)
+end
+
+def test_dynamodb_available_backups():
+  let response = json::json_parse(dynamodb_backups_json)
+  | let result = aws::dynamodb::available_backups(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_dynamodb_backups_to_markdown_table():
+  let response = json::json_parse(dynamodb_backups_json)
+  | let result = aws::dynamodb::backups_to_markdown_table(response)
+  | assert(contains(result, "| TableName | BackupName | BackupStatus | BackupType | CreationDateTime |"))
+  | assert(contains(result, "users"))
+  | assert(contains(result, "AVAILABLE"))
+  | assert(contains(result, "DELETED"))
+end
+
+def test_dynamodb_backups_to_markdown_table_empty():
+  let response = json::json_parse("{\"BackupSummaries\":[]}")
+  | let result = aws::dynamodb::backups_to_markdown_table(response)
+  | assert_eq(result, "No backups found.")
+end
+
+| let cloudwatch_dashboards_json = "{\"DashboardEntries\":[{\"DashboardName\":\"prod-overview\",\"DashboardArn\":\"arn:aws:cloudwatch::123456789012:dashboard/prod-overview\",\"LastModified\":\"2024-01-20T12:00:00Z\",\"Size\":4096},{\"DashboardName\":\"ops-metrics\",\"DashboardArn\":\"arn:aws:cloudwatch::123456789012:dashboard/ops-metrics\",\"LastModified\":\"2024-02-01T09:00:00Z\",\"Size\":8192}]}" |
+
+def test_cloudwatch_dashboards():
+  let response = json::json_parse(cloudwatch_dashboards_json)
+  | let result = aws::cloudwatch::dashboards(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_cloudwatch_dashboard_names():
+  let response = json::json_parse(cloudwatch_dashboards_json)
+  | let result = aws::cloudwatch::dashboard_names(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "prod-overview")
+end
+
+def test_cloudwatch_dashboards_to_markdown_table():
+  let response = json::json_parse(cloudwatch_dashboards_json)
+  | let result = aws::cloudwatch::dashboards_to_markdown_table(response)
+  | assert(contains(result, "| DashboardName | DashboardArn | LastModified | Size |"))
+  | assert(contains(result, "prod-overview"))
+  | assert(contains(result, "ops-metrics"))
+end
+
+def test_cloudwatch_dashboards_to_markdown_table_empty():
+  let response = json::json_parse("{\"DashboardEntries\":[]}")
+  | let result = aws::cloudwatch::dashboards_to_markdown_table(response)
+  | assert_eq(result, "No dashboards found.")
+end
+
+| let route53_health_checks_json = "{\"HealthChecks\":[{\"Id\":\"hc-001\",\"CallerReference\":\"ref-001\",\"HealthCheckConfig\":{\"Type\":\"HTTPS\",\"FullyQualifiedDomainName\":\"api.example.com\",\"Port\":443},\"HealthCheckVersion\":2},{\"Id\":\"hc-002\",\"CallerReference\":\"ref-002\",\"HealthCheckConfig\":{\"Type\":\"HTTP\",\"FullyQualifiedDomainName\":\"status.example.com\",\"Port\":80},\"HealthCheckVersion\":1},{\"Id\":\"hc-003\",\"CallerReference\":\"ref-003\",\"HealthCheckConfig\":{\"Type\":\"TCP\",\"FullyQualifiedDomainName\":\"db.example.com\",\"Port\":5432},\"HealthCheckVersion\":1}]}" |
+
+def test_route53_health_checks():
+  let response = json::json_parse(route53_health_checks_json)
+  | let result = aws::route53::health_checks(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_route53_health_checks_by_type():
+  let response = json::json_parse(route53_health_checks_json)
+  | let result = aws::route53::health_checks_by_type(response, "HTTPS")
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Id"], "hc-001")
+end
+
+def test_route53_health_check_count():
+  let response = json::json_parse(route53_health_checks_json)
+  | let result = aws::route53::health_check_count(response)
+  | assert_eq(result, 3)
+end
+
+def test_route53_health_checks_to_markdown_table():
+  let response = json::json_parse(route53_health_checks_json)
+  | let result = aws::route53::health_checks_to_markdown_table(response)
+  | assert(contains(result, "| Id | Type | FQDN | Port | Version |"))
+  | assert(contains(result, "hc-001"))
+  | assert(contains(result, "HTTPS"))
+  | assert(contains(result, "api.example.com"))
+  | assert(contains(result, "443"))
+end
+
+def test_route53_health_checks_to_markdown_table_empty():
+  let response = json::json_parse("{\"HealthChecks\":[]}")
+  | let result = aws::route53::health_checks_to_markdown_table(response)
+  | assert_eq(result, "No health checks found.")
+end
+
+| let autoscaling_groups_json = "{\"AutoScalingGroups\":[{\"AutoScalingGroupName\":\"web-asg\",\"MinSize\":2,\"MaxSize\":20,\"DesiredCapacity\":5,\"Instances\":[{\"InstanceId\":\"i-001\"},{\"InstanceId\":\"i-002\"},{\"InstanceId\":\"i-003\"},{\"InstanceId\":\"i-004\"},{\"InstanceId\":\"i-005\"}]},{\"AutoScalingGroupName\":\"worker-asg\",\"MinSize\":1,\"MaxSize\":10,\"DesiredCapacity\":3,\"Instances\":[{\"InstanceId\":\"i-006\"},{\"InstanceId\":\"i-007\"},{\"InstanceId\":\"i-008\"}]},{\"AutoScalingGroupName\":\"batch-asg\",\"MinSize\":0,\"MaxSize\":50,\"DesiredCapacity\":0,\"Instances\":[]}]}" |
+
+def test_autoscaling_groups():
+  let response = json::json_parse(autoscaling_groups_json)
+  | let result = aws::autoscaling::groups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_autoscaling_group_names():
+  let response = json::json_parse(autoscaling_groups_json)
+  | let result = aws::autoscaling::group_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "web-asg")
+end
+
+def test_autoscaling_groups_by_min_desired():
+  let response = json::json_parse(autoscaling_groups_json)
+  | let result = aws::autoscaling::groups_by_min_desired(response, 1)
+  | assert_eq(len(result), 2)
+end
+
+def test_autoscaling_groups_to_markdown_table():
+  let response = json::json_parse(autoscaling_groups_json)
+  | let result = aws::autoscaling::groups_to_markdown_table(response)
+  | assert(contains(result, "| GroupName | MinSize | MaxSize | DesiredCapacity | Instances |"))
+  | assert(contains(result, "web-asg"))
+  | assert(contains(result, "worker-asg"))
+  | assert(contains(result, "batch-asg"))
+end
+
+def test_autoscaling_groups_to_markdown_table_empty():
+  let response = json::json_parse("{\"AutoScalingGroups\":[]}")
+  | let result = aws::autoscaling::groups_to_markdown_table(response)
+  | assert_eq(result, "No Auto Scaling groups found.")
+end
+
+| let autoscaling_policies_json = "{\"ScalingPolicies\":[{\"PolicyName\":\"scale-out\",\"PolicyType\":\"TargetTrackingScaling\",\"AutoScalingGroupName\":\"web-asg\"},{\"PolicyName\":\"scale-in\",\"PolicyType\":\"StepScaling\",\"AutoScalingGroupName\":\"web-asg\"},{\"PolicyName\":\"scheduled-scale\",\"PolicyType\":\"TargetTrackingScaling\",\"AutoScalingGroupName\":\"worker-asg\"}]}" |
+
+def test_autoscaling_scaling_policies():
+  let response = json::json_parse(autoscaling_policies_json)
+  | let result = aws::autoscaling::scaling_policies(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_autoscaling_policies_by_type():
+  let response = json::json_parse(autoscaling_policies_json)
+  | let result = aws::autoscaling::policies_by_type(response, "TargetTrackingScaling")
+  | assert_eq(len(result), 2)
+end
+
+def test_autoscaling_policy_names():
+  let response = json::json_parse(autoscaling_policies_json)
+  | let result = aws::autoscaling::policy_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "scale-out")
+end
+
+def test_autoscaling_scaling_policies_to_markdown_table():
+  let response = json::json_parse(autoscaling_policies_json)
+  | let result = aws::autoscaling::scaling_policies_to_markdown_table(response)
+  | assert(contains(result, "| PolicyName | PolicyType | AutoScalingGroupName |"))
+  | assert(contains(result, "scale-out"))
+  | assert(contains(result, "TargetTrackingScaling"))
+  | assert(contains(result, "StepScaling"))
+end
+
+def test_autoscaling_scaling_policies_to_markdown_table_empty():
+  let response = json::json_parse("{\"ScalingPolicies\":[]}")
+  | let result = aws::autoscaling::scaling_policies_to_markdown_table(response)
+  | assert_eq(result, "No scaling policies found.")
+end
+
+| let firehose_streams_json = "{\"DeliveryStreamNames\":[\"analytics-stream\",\"clickstream\",\"error-logs\"],\"HasMoreDeliveryStreams\":false}" |
+
+def test_firehose_stream_names():
+  let response = json::json_parse(firehose_streams_json)
+  | let result = aws::firehose::stream_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "analytics-stream")
+end
+
+def test_firehose_stream_count():
+  let response = json::json_parse(firehose_streams_json)
+  | let result = aws::firehose::stream_count(response)
+  | assert_eq(result, 3)
+end
+
+def test_firehose_stream_names_to_markdown_table():
+  let response = json::json_parse(firehose_streams_json)
+  | let result = aws::firehose::stream_names_to_markdown_table(response)
+  | assert(contains(result, "| DeliveryStreamName |"))
+  | assert(contains(result, "analytics-stream"))
+  | assert(contains(result, "clickstream"))
+end
+
+def test_firehose_stream_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"DeliveryStreamNames\":[]}")
+  | let result = aws::firehose::stream_names_to_markdown_table(response)
+  | assert_eq(result, "No delivery streams found.")
+end
+
+| let firehose_desc_json = "{\"DeliveryStreamDescription\":{\"DeliveryStreamName\":\"analytics-stream\",\"DeliveryStreamStatus\":\"ACTIVE\",\"DeliveryStreamType\":\"DirectPut\",\"Destinations\":[{\"DestinationId\":\"dest-001\"},{\"DestinationId\":\"dest-002\"}]}}" |
+
+def test_firehose_stream_description():
+  let response = json::json_parse(firehose_desc_json)
+  | let result = aws::firehose::stream_description(response)
+  | assert_eq(result["DeliveryStreamName"], "analytics-stream")
+end
+
+def test_firehose_stream_status():
+  let response = json::json_parse(firehose_desc_json)
+  | let result = aws::firehose::stream_status(response)
+  | assert_eq(result, "ACTIVE")
+end
+
+def test_firehose_stream_info_to_markdown_table():
+  let response = json::json_parse(firehose_desc_json)
+  | let result = aws::firehose::stream_info_to_markdown_table(response)
+  | assert(contains(result, "| StreamName | Status | Type | Destinations |"))
+  | assert(contains(result, "analytics-stream"))
+  | assert(contains(result, "ACTIVE"))
+  | assert(contains(result, "DirectPut"))
+  | assert(contains(result, "2"))
+end
+
+| let athena_workgroups_json = "{\"WorkGroups\":[{\"Name\":\"primary\",\"State\":\"ENABLED\",\"Description\":\"Primary workgroup\"},{\"Name\":\"analytics\",\"State\":\"ENABLED\",\"Description\":\"Analytics team workgroup\"},{\"Name\":\"archived\",\"State\":\"DISABLED\",\"Description\":\"Archived\"}]}" |
+
+def test_athena_workgroups():
+  let response = json::json_parse(athena_workgroups_json)
+  | let result = aws::athena::workgroups(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_athena_workgroup_names():
+  let response = json::json_parse(athena_workgroups_json)
+  | let result = aws::athena::workgroup_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "primary")
+end
+
+def test_athena_enabled_workgroups():
+  let response = json::json_parse(athena_workgroups_json)
+  | let result = aws::athena::enabled_workgroups(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_athena_workgroups_to_markdown_table():
+  let response = json::json_parse(athena_workgroups_json)
+  | let result = aws::athena::workgroups_to_markdown_table(response)
+  | assert(contains(result, "| Name | State | Description |"))
+  | assert(contains(result, "primary"))
+  | assert(contains(result, "ENABLED"))
+  | assert(contains(result, "DISABLED"))
+end
+
+def test_athena_workgroups_to_markdown_table_empty():
+  let response = json::json_parse("{\"WorkGroups\":[]}")
+  | let result = aws::athena::workgroups_to_markdown_table(response)
+  | assert_eq(result, "No workgroups found.")
+end
+
+| let athena_queries_json = "{\"QueryExecutions\":[{\"QueryExecutionId\":\"qe-001\",\"Query\":\"SELECT * FROM users\",\"Status\":{\"State\":\"SUCCEEDED\",\"SubmissionDateTime\":\"2024-01-15T10:00:00Z\"},\"WorkGroup\":\"primary\",\"QueryExecutionContext\":{\"Database\":\"my_database\"}},{\"QueryExecutionId\":\"qe-002\",\"Query\":\"SELECT * FROM orders\",\"Status\":{\"State\":\"FAILED\",\"SubmissionDateTime\":\"2024-01-15T11:00:00Z\"},\"WorkGroup\":\"analytics\",\"QueryExecutionContext\":{\"Database\":\"analytics_db\"}},{\"QueryExecutionId\":\"qe-003\",\"Query\":\"SELECT count(*) FROM events\",\"Status\":{\"State\":\"RUNNING\",\"SubmissionDateTime\":\"2024-01-15T12:00:00Z\"},\"WorkGroup\":\"primary\",\"QueryExecutionContext\":{\"Database\":\"my_database\"}}]}" |
+
+def test_athena_query_executions():
+  let response = json::json_parse(athena_queries_json)
+  | let result = aws::athena::query_executions(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_athena_succeeded_executions():
+  let response = json::json_parse(athena_queries_json)
+  | let result = aws::athena::succeeded_executions(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["QueryExecutionId"], "qe-001")
+end
+
+def test_athena_failed_executions():
+  let response = json::json_parse(athena_queries_json)
+  | let result = aws::athena::failed_executions(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["QueryExecutionId"], "qe-002")
+end
+
+def test_athena_query_executions_to_markdown_table():
+  let response = json::json_parse(athena_queries_json)
+  | let result = aws::athena::query_executions_to_markdown_table(response)
+  | assert(contains(result, "| QueryExecutionId | State | Workgroup | Database |"))
+  | assert(contains(result, "qe-001"))
+  | assert(contains(result, "SUCCEEDED"))
+  | assert(contains(result, "FAILED"))
+  | assert(contains(result, "RUNNING"))
+end
+
+def test_athena_query_executions_to_markdown_table_empty():
+  let response = json::json_parse("{\"QueryExecutions\":[]}")
+  | let result = aws::athena::query_executions_to_markdown_table(response)
+  | assert_eq(result, "No query executions found.")
+end
+
+| let codecommit_repos_json = "{\"repositories\":[{\"repositoryId\":\"repo-id-001\",\"repositoryName\":\"backend-api\"},{\"repositoryId\":\"repo-id-002\",\"repositoryName\":\"frontend-app\"},{\"repositoryId\":\"repo-id-003\",\"repositoryName\":\"shared-lib\"}]}" |
+
+def test_codecommit_repositories():
+  let response = json::json_parse(codecommit_repos_json)
+  | let result = aws::codecommit::repositories(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_codecommit_repository_names():
+  let response = json::json_parse(codecommit_repos_json)
+  | let result = aws::codecommit::repository_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "backend-api")
+end
+
+def test_codecommit_repositories_to_markdown_table():
+  let response = json::json_parse(codecommit_repos_json)
+  | let result = aws::codecommit::repositories_to_markdown_table(response)
+  | assert(contains(result, "| RepositoryName | RepositoryId |"))
+  | assert(contains(result, "backend-api"))
+  | assert(contains(result, "frontend-app"))
+end
+
+def test_codecommit_repositories_to_markdown_table_empty():
+  let response = json::json_parse("{\"repositories\":[]}")
+  | let result = aws::codecommit::repositories_to_markdown_table(response)
+  | assert_eq(result, "No repositories found.")
+end
+
+| let codecommit_branches_json = "{\"branches\":[\"main\",\"develop\",\"feature/auth\",\"hotfix/bug-123\"]}" |
+
+def test_codecommit_branches():
+  let response = json::json_parse(codecommit_branches_json)
+  | let result = aws::codecommit::branches(response)
+  | assert_eq(len(result), 4)
+end
+
+def test_codecommit_branch_count():
+  let response = json::json_parse(codecommit_branches_json)
+  | let result = aws::codecommit::branch_count(response)
+  | assert_eq(result, 4)
+end
+
+def test_codecommit_branches_to_markdown_table():
+  let response = json::json_parse(codecommit_branches_json)
+  | let result = aws::codecommit::branches_to_markdown_table(response)
+  | assert(contains(result, "| BranchName |"))
+  | assert(contains(result, "main"))
+  | assert(contains(result, "develop"))
+end
+
+def test_codecommit_branches_to_markdown_table_empty():
+  let response = json::json_parse("{\"branches\":[]}")
+  | let result = aws::codecommit::branches_to_markdown_table(response)
+  | assert_eq(result, "No branches found.")
+end
+
+| let codedeploy_apps_json = "{\"applications\":[\"MyWebApp\",\"MyWorkerApp\",\"MyBatchApp\"]}" |
+
+def test_codedeploy_application_names():
+  let response = json::json_parse(codedeploy_apps_json)
+  | let result = aws::codedeploy::application_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "MyWebApp")
+end
+
+def test_codedeploy_application_count():
+  let response = json::json_parse(codedeploy_apps_json)
+  | let result = aws::codedeploy::application_count(response)
+  | assert_eq(result, 3)
+end
+
+def test_codedeploy_application_names_to_markdown_table():
+  let response = json::json_parse(codedeploy_apps_json)
+  | let result = aws::codedeploy::application_names_to_markdown_table(response)
+  | assert(contains(result, "| ApplicationName |"))
+  | assert(contains(result, "MyWebApp"))
+  | assert(contains(result, "MyWorkerApp"))
+end
+
+def test_codedeploy_application_names_to_markdown_table_empty():
+  let response = json::json_parse("{\"applications\":[]}")
+  | let result = aws::codedeploy::application_names_to_markdown_table(response)
+  | assert_eq(result, "No applications found.")
+end
+
+| let codedeploy_deployments_json = "{\"deploymentsInfo\":[{\"deploymentId\":\"d-001\",\"applicationName\":\"MyWebApp\",\"deploymentGroupName\":\"prod-group\",\"status\":\"Succeeded\",\"createTime\":\"2024-01-15T10:00:00Z\"},{\"deploymentId\":\"d-002\",\"applicationName\":\"MyWebApp\",\"deploymentGroupName\":\"staging-group\",\"status\":\"Failed\",\"createTime\":\"2024-01-14T09:00:00Z\"},{\"deploymentId\":\"d-003\",\"applicationName\":\"MyWorkerApp\",\"deploymentGroupName\":\"prod-group\",\"status\":\"InProgress\",\"createTime\":\"2024-01-15T11:00:00Z\"}]}" |
+
+def test_codedeploy_deployments():
+  let response = json::json_parse(codedeploy_deployments_json)
+  | let result = aws::codedeploy::deployments(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_codedeploy_succeeded_deployments():
+  let response = json::json_parse(codedeploy_deployments_json)
+  | let result = aws::codedeploy::succeeded_deployments(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["deploymentId"], "d-001")
+end
+
+def test_codedeploy_failed_deployments():
+  let response = json::json_parse(codedeploy_deployments_json)
+  | let result = aws::codedeploy::failed_deployments(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["deploymentId"], "d-002")
+end
+
+def test_codedeploy_deployments_to_markdown_table():
+  let response = json::json_parse(codedeploy_deployments_json)
+  | let result = aws::codedeploy::deployments_to_markdown_table(response)
+  | assert(contains(result, "| DeploymentId | ApplicationName | DeploymentGroup | Status | CreateTime |"))
+  | assert(contains(result, "d-001"))
+  | assert(contains(result, "Succeeded"))
+  | assert(contains(result, "Failed"))
+  | assert(contains(result, "InProgress"))
+end
+
+def test_codedeploy_deployments_to_markdown_table_empty():
+  let response = json::json_parse("{\"deploymentsInfo\":[]}")
+  | let result = aws::codedeploy::deployments_to_markdown_table(response)
+  | assert_eq(result, "No deployments found.")
+end
+
+| let batch_queues_json = "{\"jobQueues\":[{\"jobQueueName\":\"high-priority\",\"state\":\"ENABLED\",\"status\":\"VALID\",\"priority\":100},{\"jobQueueName\":\"low-priority\",\"state\":\"ENABLED\",\"status\":\"VALID\",\"priority\":10},{\"jobQueueName\":\"disabled-queue\",\"state\":\"DISABLED\",\"status\":\"VALID\",\"priority\":50}]}" |
+
+def test_batch_job_queues():
+  let response = json::json_parse(batch_queues_json)
+  | let result = aws::batch::job_queues(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_batch_queue_names():
+  let response = json::json_parse(batch_queues_json)
+  | let result = aws::batch::queue_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "high-priority")
+end
+
+def test_batch_enabled_queues():
+  let response = json::json_parse(batch_queues_json)
+  | let result = aws::batch::enabled_queues(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_batch_job_queues_to_markdown_table():
+  let response = json::json_parse(batch_queues_json)
+  | let result = aws::batch::job_queues_to_markdown_table(response)
+  | assert(contains(result, "| JobQueueName | State | Status | Priority |"))
+  | assert(contains(result, "high-priority"))
+  | assert(contains(result, "ENABLED"))
+  | assert(contains(result, "DISABLED"))
+end
+
+def test_batch_job_queues_to_markdown_table_empty():
+  let response = json::json_parse("{\"jobQueues\":[]}")
+  | let result = aws::batch::job_queues_to_markdown_table(response)
+  | assert_eq(result, "No job queues found.")
+end
+
+| let batch_compute_json = "{\"computeEnvironments\":[{\"computeEnvironmentName\":\"managed-ec2\",\"type\":\"MANAGED\",\"state\":\"ENABLED\",\"status\":\"VALID\"},{\"computeEnvironmentName\":\"spot-env\",\"type\":\"MANAGED\",\"state\":\"ENABLED\",\"status\":\"VALID\"},{\"computeEnvironmentName\":\"unmanaged-env\",\"type\":\"UNMANAGED\",\"state\":\"DISABLED\",\"status\":\"VALID\"}]}" |
+
+def test_batch_compute_environments():
+  let response = json::json_parse(batch_compute_json)
+  | let result = aws::batch::compute_environments(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_batch_environment_names():
+  let response = json::json_parse(batch_compute_json)
+  | let result = aws::batch::environment_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "managed-ec2")
+end
+
+def test_batch_enabled_environments():
+  let response = json::json_parse(batch_compute_json)
+  | let result = aws::batch::enabled_environments(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_batch_compute_environments_to_markdown_table():
+  let response = json::json_parse(batch_compute_json)
+  | let result = aws::batch::compute_environments_to_markdown_table(response)
+  | assert(contains(result, "| Name | Type | State | Status |"))
+  | assert(contains(result, "managed-ec2"))
+  | assert(contains(result, "MANAGED"))
+  | assert(contains(result, "UNMANAGED"))
+end
+
+def test_batch_compute_environments_to_markdown_table_empty():
+  let response = json::json_parse("{\"computeEnvironments\":[]}")
+  | let result = aws::batch::compute_environments_to_markdown_table(response)
+  | assert_eq(result, "No compute environments found.")
+end
+
+| let batch_jobs_json = "{\"jobSummaryList\":[{\"jobId\":\"job-001\",\"jobName\":\"process-batch-1\",\"status\":\"SUCCEEDED\"},{\"jobId\":\"job-002\",\"jobName\":\"process-batch-2\",\"status\":\"FAILED\"},{\"jobId\":\"job-003\",\"jobName\":\"process-batch-3\",\"status\":\"RUNNING\"},{\"jobId\":\"job-004\",\"jobName\":\"process-batch-4\",\"status\":\"SUCCEEDED\"}]}" |
+
+def test_batch_jobs():
+  let response = json::json_parse(batch_jobs_json)
+  | let result = aws::batch::jobs(response)
+  | assert_eq(len(result), 4)
+end
+
+def test_batch_running_jobs():
+  let response = json::json_parse(batch_jobs_json)
+  | let result = aws::batch::running_jobs(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["jobId"], "job-003")
+end
+
+def test_batch_failed_jobs():
+  let response = json::json_parse(batch_jobs_json)
+  | let result = aws::batch::failed_jobs(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["jobId"], "job-002")
+end
+
+def test_batch_jobs_to_markdown_table():
+  let response = json::json_parse(batch_jobs_json)
+  | let result = aws::batch::jobs_to_markdown_table(response)
+  | assert(contains(result, "| JobId | JobName | Status |"))
+  | assert(contains(result, "job-001"))
+  | assert(contains(result, "SUCCEEDED"))
+  | assert(contains(result, "FAILED"))
+  | assert(contains(result, "RUNNING"))
+end
+
+def test_batch_jobs_to_markdown_table_empty():
+  let response = json::json_parse("{\"jobSummaryList\":[]}")
+  | let result = aws::batch::jobs_to_markdown_table(response)
+  | assert_eq(result, "No jobs found.")
+end
+
+| let guardduty_detectors_json = "{\"DetectorIds\":[\"detector-abc123\",\"detector-def456\"]}" |
+
+def test_guardduty_detector_ids():
+  let response = json::json_parse(guardduty_detectors_json)
+  | let result = aws::guardduty::detector_ids(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "detector-abc123")
+end
+
+def test_guardduty_detector_count():
+  let response = json::json_parse(guardduty_detectors_json)
+  | let result = aws::guardduty::detector_count(response)
+  | assert_eq(result, 2)
+end
+
+def test_guardduty_detector_ids_to_markdown_table():
+  let response = json::json_parse(guardduty_detectors_json)
+  | let result = aws::guardduty::detector_ids_to_markdown_table(response)
+  | assert(contains(result, "| DetectorId |"))
+  | assert(contains(result, "detector-abc123"))
+end
+
+def test_guardduty_detector_ids_to_markdown_table_empty():
+  let response = json::json_parse("{\"DetectorIds\":[]}")
+  | let result = aws::guardduty::detector_ids_to_markdown_table(response)
+  | assert_eq(result, "No detectors found.")
+end
+
+| let guardduty_findings_json = "{\"Findings\":[{\"Id\":\"finding-001\",\"Type\":\"UnauthorizedAccess:EC2/SSHBruteForce\",\"Severity\":8.5,\"Title\":\"SSH brute force attack\",\"Region\":\"us-east-1\",\"AccountId\":\"123456789012\"},{\"Id\":\"finding-002\",\"Type\":\"Recon:IAMUser/MaliciousIPCaller\",\"Severity\":5.0,\"Title\":\"API call from malicious IP\",\"Region\":\"us-east-1\",\"AccountId\":\"123456789012\"},{\"Id\":\"finding-003\",\"Type\":\"Policy:IAMUser/RootCredentialUsage\",\"Severity\":3.0,\"Title\":\"Root credentials used\",\"Region\":\"us-east-1\",\"AccountId\":\"123456789012\"}]}" |
+
+def test_guardduty_findings():
+  let response = json::json_parse(guardduty_findings_json)
+  | let result = aws::guardduty::findings(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_guardduty_high_severity_findings():
+  let response = json::json_parse(guardduty_findings_json)
+  | let result = aws::guardduty::high_severity_findings(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Id"], "finding-001")
+end
+
+def test_guardduty_medium_severity_findings():
+  let response = json::json_parse(guardduty_findings_json)
+  | let result = aws::guardduty::medium_severity_findings(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["Id"], "finding-002")
+end
+
+def test_guardduty_findings_to_markdown_table():
+  let response = json::json_parse(guardduty_findings_json)
+  | let result = aws::guardduty::findings_to_markdown_table(response)
+  | assert(contains(result, "| Id | Type | Severity | Title | Region |"))
+  | assert(contains(result, "finding-001"))
+  | assert(contains(result, "SSH brute force attack"))
+  | assert(contains(result, "8.5"))
+end
+
+def test_guardduty_findings_to_markdown_table_empty():
+  let response = json::json_parse("{\"Findings\":[]}")
+  | let result = aws::guardduty::findings_to_markdown_table(response)
+  | assert_eq(result, "No findings found.")
+end
+
+| let backup_plans_json = "{\"BackupPlansList\":[{\"BackupPlanId\":\"plan-001\",\"BackupPlanArn\":\"arn:aws:backup:us-east-1:123456789012:backup-plan:plan-001\",\"BackupPlanName\":\"daily-backup\",\"CreationDate\":\"2024-01-01T00:00:00Z\",\"LastExecutionDate\":\"2024-01-15T02:00:00Z\"},{\"BackupPlanId\":\"plan-002\",\"BackupPlanArn\":\"arn:aws:backup:us-east-1:123456789012:backup-plan:plan-002\",\"BackupPlanName\":\"weekly-backup\",\"CreationDate\":\"2024-01-01T00:00:00Z\",\"LastExecutionDate\":\"2024-01-14T03:00:00Z\"}]}" |
+
+def test_backup_backup_plans():
+  let response = json::json_parse(backup_plans_json)
+  | let result = aws::backup::backup_plans(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_backup_plan_names():
+  let response = json::json_parse(backup_plans_json)
+  | let result = aws::backup::plan_names(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "daily-backup")
+end
+
+def test_backup_backup_plans_to_markdown_table():
+  let response = json::json_parse(backup_plans_json)
+  | let result = aws::backup::backup_plans_to_markdown_table(response)
+  | assert(contains(result, "| BackupPlanName | BackupPlanId | CreationDate | LastExecutionDate |"))
+  | assert(contains(result, "daily-backup"))
+  | assert(contains(result, "weekly-backup"))
+end
+
+def test_backup_backup_plans_to_markdown_table_empty():
+  let response = json::json_parse("{\"BackupPlansList\":[]}")
+  | let result = aws::backup::backup_plans_to_markdown_table(response)
+  | assert_eq(result, "No backup plans found.")
+end
+
+| let backup_jobs_json = "{\"BackupJobs\":[{\"BackupJobId\":\"bj-001\",\"BackupVaultName\":\"prod-vault\",\"ResourceArn\":\"arn:aws:dynamodb:us-east-1:123456789012:table/users\",\"State\":\"COMPLETED\",\"BackupSizeInBytes\":102400,\"CreationDate\":\"2024-01-15T02:00:00Z\"},{\"BackupJobId\":\"bj-002\",\"BackupVaultName\":\"prod-vault\",\"ResourceArn\":\"arn:aws:rds:us-east-1:123456789012:db:mydb\",\"State\":\"FAILED\",\"BackupSizeInBytes\":0,\"CreationDate\":\"2024-01-15T02:05:00Z\"},{\"BackupJobId\":\"bj-003\",\"BackupVaultName\":\"staging-vault\",\"ResourceArn\":\"arn:aws:dynamodb:us-east-1:123456789012:table/orders\",\"State\":\"COMPLETED\",\"BackupSizeInBytes\":51200,\"CreationDate\":\"2024-01-15T03:00:00Z\"}]}" |
+
+def test_backup_backup_jobs():
+  let response = json::json_parse(backup_jobs_json)
+  | let result = aws::backup::backup_jobs(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_backup_completed_jobs():
+  let response = json::json_parse(backup_jobs_json)
+  | let result = aws::backup::completed_jobs(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_backup_failed_jobs():
+  let response = json::json_parse(backup_jobs_json)
+  | let result = aws::backup::failed_jobs(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["BackupJobId"], "bj-002")
+end
+
+def test_backup_backup_jobs_to_markdown_table():
+  let response = json::json_parse(backup_jobs_json)
+  | let result = aws::backup::backup_jobs_to_markdown_table(response)
+  | assert(contains(result, "| BackupJobId | VaultName | State | ResourceArn | SizeBytes |"))
+  | assert(contains(result, "bj-001"))
+  | assert(contains(result, "COMPLETED"))
+  | assert(contains(result, "FAILED"))
+end
+
+def test_backup_backup_jobs_to_markdown_table_empty():
+  let response = json::json_parse("{\"BackupJobs\":[]}")
+  | let result = aws::backup::backup_jobs_to_markdown_table(response)
+  | assert_eq(result, "No backup jobs found.")
+end
+
+| let efs_filesystems_json = "{\"FileSystems\":[{\"FileSystemId\":\"fs-001\",\"Name\":\"prod-efs\",\"LifeCycleState\":\"available\",\"NumberOfMountTargets\":3,\"PerformanceMode\":\"generalPurpose\",\"Encrypted\":true},{\"FileSystemId\":\"fs-002\",\"Name\":\"staging-efs\",\"LifeCycleState\":\"available\",\"NumberOfMountTargets\":2,\"PerformanceMode\":\"maxIO\",\"Encrypted\":false},{\"FileSystemId\":\"fs-003\",\"Name\":\"backup-efs\",\"LifeCycleState\":\"creating\",\"NumberOfMountTargets\":0,\"PerformanceMode\":\"generalPurpose\",\"Encrypted\":true}]}" |
+
+def test_efs_file_systems():
+  let response = json::json_parse(efs_filesystems_json)
+  | let result = aws::efs::file_systems(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_efs_file_system_ids():
+  let response = json::json_parse(efs_filesystems_json)
+  | let result = aws::efs::file_system_ids(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "fs-001")
+end
+
+def test_efs_available_file_systems():
+  let response = json::json_parse(efs_filesystems_json)
+  | let result = aws::efs::available_file_systems(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_efs_encrypted_file_systems():
+  let response = json::json_parse(efs_filesystems_json)
+  | let result = aws::efs::encrypted_file_systems(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_efs_file_systems_to_markdown_table():
+  let response = json::json_parse(efs_filesystems_json)
+  | let result = aws::efs::file_systems_to_markdown_table(response)
+  | assert(contains(result, "| FileSystemId | Name | State | MountTargets | PerformanceMode | Encrypted |"))
+  | assert(contains(result, "fs-001"))
+  | assert(contains(result, "prod-efs"))
+  | assert(contains(result, "available"))
+  | assert(contains(result, "generalPurpose"))
+end
+
+def test_efs_file_systems_to_markdown_table_empty():
+  let response = json::json_parse("{\"FileSystems\":[]}")
+  | let result = aws::efs::file_systems_to_markdown_table(response)
+  | assert_eq(result, "No file systems found.")
+end
+
+| let efs_mount_targets_json = "{\"MountTargets\":[{\"MountTargetId\":\"fsmt-001\",\"FileSystemId\":\"fs-001\",\"SubnetId\":\"subnet-001\",\"LifeCycleState\":\"available\",\"IpAddress\":\"10.0.1.100\"},{\"MountTargetId\":\"fsmt-002\",\"FileSystemId\":\"fs-001\",\"SubnetId\":\"subnet-002\",\"LifeCycleState\":\"available\",\"IpAddress\":\"10.0.2.100\"},{\"MountTargetId\":\"fsmt-003\",\"FileSystemId\":\"fs-001\",\"SubnetId\":\"subnet-003\",\"LifeCycleState\":\"creating\",\"IpAddress\":\"10.0.3.100\"}]}" |
+
+def test_efs_mount_targets():
+  let response = json::json_parse(efs_mount_targets_json)
+  | let result = aws::efs::mount_targets(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_efs_available_mount_targets():
+  let response = json::json_parse(efs_mount_targets_json)
+  | let result = aws::efs::available_mount_targets(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_efs_mount_targets_to_markdown_table():
+  let response = json::json_parse(efs_mount_targets_json)
+  | let result = aws::efs::mount_targets_to_markdown_table(response)
+  | assert(contains(result, "| MountTargetId | FileSystemId | SubnetId | State | IpAddress |"))
+  | assert(contains(result, "fsmt-001"))
+  | assert(contains(result, "10.0.1.100"))
+  | assert(contains(result, "available"))
+end
+
+def test_efs_mount_targets_to_markdown_table_empty():
+  let response = json::json_parse("{\"MountTargets\":[]}")
+  | let result = aws::efs::mount_targets_to_markdown_table(response)
+  | assert_eq(result, "No mount targets found.")
+end
+
+| let sagemaker_training_jobs_json = "{\"TrainingJobSummaries\":[{\"TrainingJobName\":\"bert-finetune-v1\",\"TrainingJobArn\":\"arn:aws:sagemaker:us-east-1:123456789012:training-job/bert-finetune-v1\",\"TrainingJobStatus\":\"Completed\",\"CreationTime\":\"2024-01-10T08:00:00Z\",\"LastModifiedTime\":\"2024-01-10T12:00:00Z\"},{\"TrainingJobName\":\"gpt-train-v2\",\"TrainingJobArn\":\"arn:aws:sagemaker:us-east-1:123456789012:training-job/gpt-train-v2\",\"TrainingJobStatus\":\"Failed\",\"CreationTime\":\"2024-01-11T09:00:00Z\",\"LastModifiedTime\":\"2024-01-11T10:30:00Z\"},{\"TrainingJobName\":\"resnet-train-v3\",\"TrainingJobArn\":\"arn:aws:sagemaker:us-east-1:123456789012:training-job/resnet-train-v3\",\"TrainingJobStatus\":\"InProgress\",\"CreationTime\":\"2024-01-15T06:00:00Z\",\"LastModifiedTime\":\"2024-01-15T08:00:00Z\"}]}" |
+
+def test_sagemaker_training_jobs():
+  let response = json::json_parse(sagemaker_training_jobs_json)
+  | let result = aws::sagemaker::training_jobs(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_sagemaker_completed_training_jobs():
+  let response = json::json_parse(sagemaker_training_jobs_json)
+  | let result = aws::sagemaker::completed_training_jobs(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["TrainingJobName"], "bert-finetune-v1")
+end
+
+def test_sagemaker_training_job_names():
+  let response = json::json_parse(sagemaker_training_jobs_json)
+  | let result = aws::sagemaker::training_job_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "bert-finetune-v1")
+end
+
+def test_sagemaker_training_jobs_to_markdown_table():
+  let response = json::json_parse(sagemaker_training_jobs_json)
+  | let result = aws::sagemaker::training_jobs_to_markdown_table(response)
+  | assert(contains(result, "| TrainingJobName | Status | CreationTime | LastModifiedTime |"))
+  | assert(contains(result, "bert-finetune-v1"))
+  | assert(contains(result, "Completed"))
+  | assert(contains(result, "Failed"))
+  | assert(contains(result, "InProgress"))
+end
+
+def test_sagemaker_training_jobs_to_markdown_table_empty():
+  let response = json::json_parse("{\"TrainingJobSummaries\":[]}")
+  | let result = aws::sagemaker::training_jobs_to_markdown_table(response)
+  | assert_eq(result, "No training jobs found.")
+end
+
+| let sagemaker_models_json = "{\"Models\":[{\"ModelName\":\"bert-model-v1\",\"ModelArn\":\"arn:aws:sagemaker:us-east-1:123456789012:model/bert-model-v1\",\"CreationTime\":\"2024-01-10T14:00:00Z\"},{\"ModelName\":\"gpt-model-v1\",\"ModelArn\":\"arn:aws:sagemaker:us-east-1:123456789012:model/gpt-model-v1\",\"CreationTime\":\"2024-01-12T10:00:00Z\"}]}" |
+
+def test_sagemaker_models():
+  let response = json::json_parse(sagemaker_models_json)
+  | let result = aws::sagemaker::models(response)
+  | assert_eq(len(result), 2)
+end
+
+def test_sagemaker_model_names():
+  let response = json::json_parse(sagemaker_models_json)
+  | let result = aws::sagemaker::model_names(response)
+  | assert_eq(len(result), 2)
+  | assert_eq(result[0], "bert-model-v1")
+end
+
+def test_sagemaker_models_to_markdown_table():
+  let response = json::json_parse(sagemaker_models_json)
+  | let result = aws::sagemaker::models_to_markdown_table(response)
+  | assert(contains(result, "| ModelName | ModelArn | CreationTime |"))
+  | assert(contains(result, "bert-model-v1"))
+  | assert(contains(result, "gpt-model-v1"))
+end
+
+def test_sagemaker_models_to_markdown_table_empty():
+  let response = json::json_parse("{\"Models\":[]}")
+  | let result = aws::sagemaker::models_to_markdown_table(response)
+  | assert_eq(result, "No models found.")
+end
+
+| let sagemaker_endpoints_json = "{\"Endpoints\":[{\"EndpointName\":\"bert-endpoint\",\"EndpointArn\":\"arn:aws:sagemaker:us-east-1:123456789012:endpoint/bert-endpoint\",\"EndpointStatus\":\"InService\",\"CreationTime\":\"2024-01-11T08:00:00Z\",\"LastModifiedTime\":\"2024-01-11T09:00:00Z\"},{\"EndpointName\":\"gpt-endpoint\",\"EndpointArn\":\"arn:aws:sagemaker:us-east-1:123456789012:endpoint/gpt-endpoint\",\"EndpointStatus\":\"Creating\",\"CreationTime\":\"2024-01-15T07:00:00Z\",\"LastModifiedTime\":\"2024-01-15T07:05:00Z\"},{\"EndpointName\":\"legacy-endpoint\",\"EndpointArn\":\"arn:aws:sagemaker:us-east-1:123456789012:endpoint/legacy-endpoint\",\"EndpointStatus\":\"Failed\",\"CreationTime\":\"2024-01-01T08:00:00Z\",\"LastModifiedTime\":\"2024-01-01T09:00:00Z\"}]}" |
+
+def test_sagemaker_endpoints():
+  let response = json::json_parse(sagemaker_endpoints_json)
+  | let result = aws::sagemaker::endpoints(response)
+  | assert_eq(len(result), 3)
+end
+
+def test_sagemaker_in_service_endpoints():
+  let response = json::json_parse(sagemaker_endpoints_json)
+  | let result = aws::sagemaker::in_service_endpoints(response)
+  | assert_eq(len(result), 1)
+  | assert_eq(result[0]["EndpointName"], "bert-endpoint")
+end
+
+def test_sagemaker_endpoint_names():
+  let response = json::json_parse(sagemaker_endpoints_json)
+  | let result = aws::sagemaker::endpoint_names(response)
+  | assert_eq(len(result), 3)
+  | assert_eq(result[0], "bert-endpoint")
+end
+
+def test_sagemaker_endpoints_to_markdown_table():
+  let response = json::json_parse(sagemaker_endpoints_json)
+  | let result = aws::sagemaker::endpoints_to_markdown_table(response)
+  | assert(contains(result, "| EndpointName | Status | CreationTime | LastModifiedTime |"))
+  | assert(contains(result, "bert-endpoint"))
+  | assert(contains(result, "InService"))
+  | assert(contains(result, "Creating"))
+  | assert(contains(result, "Failed"))
+end
+
+def test_sagemaker_endpoints_to_markdown_table_empty():
+  let response = json::json_parse("{\"Endpoints\":[]}")
+  | let result = aws::sagemaker::endpoints_to_markdown_table(response)
+  | assert_eq(result, "No endpoints found.")
+end
