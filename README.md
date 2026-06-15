@@ -1,5 +1,8 @@
 <h1 align="center">aws.mq</h1>
 
+> [!WARNING]
+> This project is currently under active development. APIs and features may change without notice.
+
 An AWS API response processor implemented as an [mq](https://github.com/harehare/mq) module.
 
 Process AWS CLI / SDK JSON responses with filtering, extraction, and Markdown table rendering — covering the most commonly used services.
