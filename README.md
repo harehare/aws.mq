@@ -63,16 +63,16 @@ cp aws.mq ~/.mq/
 
 ### HTTP Import (no local installation needed)
 
-If `mq` was built with the `http-import` feature, you can import directly from GitHub without any local setup:
+If `mq` was built with the `http-import` feature, you can import directly from GitHub without any local setup. This requires the `--allow-http-import` flag, which is disabled by default:
 
 ```sh
-mq -I raw 'import "github.com/harehare/aws.mq" | aws::from_json | aws::ec2::instances | map(fn(i): i["InstanceId"];)' response.json
+mq --allow-http-import -I raw 'import "github.com/harehare/aws.mq" | aws::from_json | aws::ec2::instances | map(fn(i): i["InstanceId"];)' response.json
 ```
 
 Pin to a specific release with `@vX.Y.Z`:
 
 ```sh
-mq -I raw 'import "github.com/harehare/aws.mq@v1.0.0" | aws::from_json | aws::ec2::running_instances' response.json
+mq --allow-http-import -I raw 'import "github.com/harehare/aws.mq@v1.0.0" | aws::from_json | aws::ec2::running_instances' response.json
 ```
 
 ## Usage
