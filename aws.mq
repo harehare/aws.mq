@@ -1,7 +1,5 @@
 import "json"
 
-|
-
 # AWS API response processing module for mq
 # Provides helpers for processing AWS CLI / SDK JSON responses.
 # See https://docs.aws.amazon.com/cli/latest/reference/ for API response schemas.
@@ -11,34 +9,32 @@ def from_json(s):
   json::json_parse(s)
 end
 
-# Extract a tag value by key from an AWS Tags array [{Key, Value}].
-def _aws_tag_value(tags, key):
-  if (is_none(tags) || is_empty(tags)):
-    ""
-  else:
-    do
-      let matches = filter(tags, fn(t): t["Key"] == key;)
-      | if (is_empty(matches)): "" else: first(matches)["Value"]
-    end
-end
-
-# Format a value as a Markdown table cell string.
-def _aws_to_cell(value):
-  if (is_none(value)): ""
-  elif (is_bool(value)): to_string(value)
-  elif (is_array(value)): to_string(len(value)) + " items"
-  elif (is_dict(value)): "{...}"
-  else: to_string(value)
-end
-
-# Build a Markdown table from a header row string, separator string, and data rows.
-def _aws_table(header, sep, rows):
-  join([header, sep] + rows, "\n")
-end
-
-|
-
 module ec2:
+  # Extract a tag value by key from an AWS Tags array [{Key, Value}].
+  def _aws_tag_value(tags, key):
+    if (is_none(tags) || is_empty(tags)):
+      ""
+    else:
+      do
+        let matches = filter(tags, fn(t): t["Key"] == key;)
+        | if (is_empty(matches)): "" else: first(matches)["Value"]
+      end
+  end
+
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract all instances from a DescribeInstances response.
   def instances(response):
     if (is_none(response["Reservations"]) || is_empty(response["Reservations"])):
@@ -87,14 +83,14 @@ module ec2:
           let header = "| InstanceId | Name | Type | State | PrivateIP | PublicIP | AZ |"
           | let sep = "| --- | --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(i):
-                      "| " + _aws_to_cell(i["InstanceId"]) +
-                        " | " + _aws_tag_value(i["Tags"], "Name") +
-                        " | " + _aws_to_cell(i["InstanceType"]) +
-                        " | " + (if (is_none(i["State"])): "" else: _aws_to_cell(i["State"]["Name"])) +
-                        " | " + _aws_to_cell(i["PrivateIpAddress"]) +
-                        " | " + _aws_to_cell(i["PublicIpAddress"]) +
-                        " | " + (if (is_none(i["Placement"])): "" else: _aws_to_cell(i["Placement"]["AvailabilityZone"])) + " |"
-                    end)
+              "| " + _aws_to_cell(i["InstanceId"]) +
+                " | " + _aws_tag_value(i["Tags"], "Name") +
+                " | " + _aws_to_cell(i["InstanceType"]) +
+                " | " + (if (is_none(i["State"])): "" else: _aws_to_cell(i["State"]["Name"])) +
+                " | " + _aws_to_cell(i["PrivateIpAddress"]) +
+                " | " + _aws_to_cell(i["PublicIpAddress"]) +
+                " | " + (if (is_none(i["Placement"])): "" else: _aws_to_cell(i["Placement"]["AvailabilityZone"])) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -119,11 +115,11 @@ module ec2:
           let header = "| GroupId | GroupName | Description | VpcId |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(sg):
-                      "| " + _aws_to_cell(sg["GroupId"]) +
-                        " | " + _aws_to_cell(sg["GroupName"]) +
-                        " | " + _aws_to_cell(sg["Description"]) +
-                        " | " + _aws_to_cell(sg["VpcId"]) + " |"
-                    end)
+              "| " + _aws_to_cell(sg["GroupId"]) +
+                " | " + _aws_to_cell(sg["GroupName"]) +
+                " | " + _aws_to_cell(sg["Description"]) +
+                " | " + _aws_to_cell(sg["VpcId"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -148,12 +144,12 @@ module ec2:
           let header = "| VpcId | CidrBlock | IsDefault | State | Name |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(v):
-                      "| " + _aws_to_cell(v["VpcId"]) +
-                        " | " + _aws_to_cell(v["CidrBlock"]) +
-                        " | " + _aws_to_cell(v["IsDefault"]) +
-                        " | " + _aws_to_cell(v["State"]) +
-                        " | " + _aws_tag_value(v["Tags"], "Name") + " |"
-                    end)
+              "| " + _aws_to_cell(v["VpcId"]) +
+                " | " + _aws_to_cell(v["CidrBlock"]) +
+                " | " + _aws_to_cell(v["IsDefault"]) +
+                " | " + _aws_to_cell(v["State"]) +
+                " | " + _aws_tag_value(v["Tags"], "Name") + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -178,13 +174,13 @@ module ec2:
           let header = "| SubnetId | VpcId | CidrBlock | AZ | AvailableIPs | Name |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["SubnetId"]) +
-                        " | " + _aws_to_cell(s["VpcId"]) +
-                        " | " + _aws_to_cell(s["CidrBlock"]) +
-                        " | " + _aws_to_cell(s["AvailabilityZone"]) +
-                        " | " + _aws_to_cell(s["AvailableIpAddressCount"]) +
-                        " | " + _aws_tag_value(s["Tags"], "Name") + " |"
-                    end)
+              "| " + _aws_to_cell(s["SubnetId"]) +
+                " | " + _aws_to_cell(s["VpcId"]) +
+                " | " + _aws_to_cell(s["CidrBlock"]) +
+                " | " + _aws_to_cell(s["AvailabilityZone"]) +
+                " | " + _aws_to_cell(s["AvailableIpAddressCount"]) +
+                " | " + _aws_tag_value(s["Tags"], "Name") + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -214,12 +210,12 @@ module ec2:
           let header = "| ImageId | Name | State | Architecture | OwnerId |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(i):
-                      "| " + _aws_to_cell(i["ImageId"]) +
-                        " | " + _aws_to_cell(i["Name"]) +
-                        " | " + _aws_to_cell(i["State"]) +
-                        " | " + _aws_to_cell(i["Architecture"]) +
-                        " | " + _aws_to_cell(i["OwnerId"]) + " |"
-                    end)
+              "| " + _aws_to_cell(i["ImageId"]) +
+                " | " + _aws_to_cell(i["Name"]) +
+                " | " + _aws_to_cell(i["State"]) +
+                " | " + _aws_to_cell(i["Architecture"]) +
+                " | " + _aws_to_cell(i["OwnerId"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -244,11 +240,11 @@ module ec2:
           let header = "| PublicIp | AllocationId | InstanceId | Domain |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["PublicIp"]) +
-                        " | " + _aws_to_cell(a["AllocationId"]) +
-                        " | " + _aws_to_cell(a["InstanceId"]) +
-                        " | " + _aws_to_cell(a["Domain"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["PublicIp"]) +
+                " | " + _aws_to_cell(a["AllocationId"]) +
+                " | " + _aws_to_cell(a["InstanceId"]) +
+                " | " + _aws_to_cell(a["Domain"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -278,13 +274,13 @@ module ec2:
           let header = "| NatGatewayId | State | VpcId | SubnetId | PublicIp |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(n):
-                      let public_ip = if (is_none(n["NatGatewayAddresses"]) || is_empty(n["NatGatewayAddresses"])): "" else: _aws_to_cell(n["NatGatewayAddresses"][0]["PublicIp"])
-                      | "| " + _aws_to_cell(n["NatGatewayId"]) +
-                        " | " + _aws_to_cell(n["State"]) +
-                        " | " + _aws_to_cell(n["VpcId"]) +
-                        " | " + _aws_to_cell(n["SubnetId"]) +
-                        " | " + public_ip + " |"
-                    end)
+              let public_ip = if (is_none(n["NatGatewayAddresses"]) || is_empty(n["NatGatewayAddresses"])): "" else: _aws_to_cell(n["NatGatewayAddresses"][0]["PublicIp"])
+              | "| " + _aws_to_cell(n["NatGatewayId"]) +
+                " | " + _aws_to_cell(n["State"]) +
+                " | " + _aws_to_cell(n["VpcId"]) +
+                " | " + _aws_to_cell(n["SubnetId"]) +
+                " | " + public_ip + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -309,12 +305,12 @@ module ec2:
           let header = "| RouteTableId | VpcId | Routes | Name |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
-                      let route_count = if (is_none(r["Routes"])): 0 else: len(r["Routes"])
-                      | "| " + _aws_to_cell(r["RouteTableId"]) +
-                        " | " + _aws_to_cell(r["VpcId"]) +
-                        " | " + _aws_to_cell(route_count) +
-                        " | " + _aws_tag_value(r["Tags"], "Name") + " |"
-                    end)
+              let route_count = if (is_none(r["Routes"])): 0 else: len(r["Routes"])
+              | "| " + _aws_to_cell(r["RouteTableId"]) +
+                " | " + _aws_to_cell(r["VpcId"]) +
+                " | " + _aws_to_cell(route_count) +
+                " | " + _aws_tag_value(r["Tags"], "Name") + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -346,14 +342,14 @@ module ec2:
           let header = "| InternetGatewayId | AttachedVpc | State | Name |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(igw):
-                      let first_att = if (is_none(igw["Attachments"]) || is_empty(igw["Attachments"])): None else: igw["Attachments"][0]
-                      | let vpc_id = if (is_none(first_att)): "" else: _aws_to_cell(first_att["VpcId"])
-                      | let state = if (is_none(first_att)): "detached" else: _aws_to_cell(first_att["State"])
-                      | "| " + _aws_to_cell(igw["InternetGatewayId"]) +
-                        " | " + vpc_id +
-                        " | " + state +
-                        " | " + _aws_tag_value(igw["Tags"], "Name") + " |"
-                    end)
+              let first_att = if (is_none(igw["Attachments"]) || is_empty(igw["Attachments"])): None else: igw["Attachments"][0]
+              | let vpc_id = if (is_none(first_att)): "" else: _aws_to_cell(first_att["VpcId"])
+              | let state = if (is_none(first_att)): "detached" else: _aws_to_cell(first_att["State"])
+              | "| " + _aws_to_cell(igw["InternetGatewayId"]) +
+                " | " + vpc_id +
+                " | " + state +
+                " | " + _aws_tag_value(igw["Tags"], "Name") + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -383,12 +379,12 @@ module ec2:
           let header = "| VpcEndpointId | VpcId | ServiceName | Type | State |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(ep):
-                      "| " + _aws_to_cell(ep["VpcEndpointId"]) +
-                        " | " + _aws_to_cell(ep["VpcId"]) +
-                        " | " + _aws_to_cell(ep["ServiceName"]) +
-                        " | " + _aws_to_cell(ep["VpcEndpointType"]) +
-                        " | " + _aws_to_cell(ep["State"]) + " |"
-                    end)
+              "| " + _aws_to_cell(ep["VpcEndpointId"]) +
+                " | " + _aws_to_cell(ep["VpcId"]) +
+                " | " + _aws_to_cell(ep["ServiceName"]) +
+                " | " + _aws_to_cell(ep["VpcEndpointType"]) +
+                " | " + _aws_to_cell(ep["State"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -397,6 +393,20 @@ end
 |
 
 module s3:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract buckets from a ListBuckets response.
   def buckets(response):
     if (is_none(response["Buckets"])): [] else: response["Buckets"]
@@ -417,9 +427,9 @@ module s3:
           let header = "| Name | CreationDate |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(b):
-                      "| " + _aws_to_cell(b["Name"]) +
-                        " | " + _aws_to_cell(b["CreationDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(b["Name"]) +
+                " | " + _aws_to_cell(b["CreationDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -454,11 +464,11 @@ module s3:
           let header = "| Key | Size | LastModified | StorageClass |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(o):
-                      "| " + _aws_to_cell(o["Key"]) +
-                        " | " + _aws_to_cell(o["Size"]) +
-                        " | " + _aws_to_cell(o["LastModified"]) +
-                        " | " + _aws_to_cell(o["StorageClass"]) + " |"
-                    end)
+              "| " + _aws_to_cell(o["Key"]) +
+                " | " + _aws_to_cell(o["Size"]) +
+                " | " + _aws_to_cell(o["LastModified"]) +
+                " | " + _aws_to_cell(o["StorageClass"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -467,6 +477,20 @@ end
 |
 
 module iam:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract users from a ListUsers response.
   def users(response):
     if (is_none(response["Users"])): [] else: response["Users"]
@@ -487,11 +511,11 @@ module iam:
           let header = "| UserName | UserId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(u):
-                      "| " + _aws_to_cell(u["UserName"]) +
-                        " | " + _aws_to_cell(u["UserId"]) +
-                        " | " + _aws_to_cell(u["Arn"]) +
-                        " | " + _aws_to_cell(u["CreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(u["UserName"]) +
+                " | " + _aws_to_cell(u["UserId"]) +
+                " | " + _aws_to_cell(u["Arn"]) +
+                " | " + _aws_to_cell(u["CreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -516,11 +540,11 @@ module iam:
           let header = "| RoleName | RoleId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
-                      "| " + _aws_to_cell(r["RoleName"]) +
-                        " | " + _aws_to_cell(r["RoleId"]) +
-                        " | " + _aws_to_cell(r["Arn"]) +
-                        " | " + _aws_to_cell(r["CreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(r["RoleName"]) +
+                " | " + _aws_to_cell(r["RoleId"]) +
+                " | " + _aws_to_cell(r["Arn"]) +
+                " | " + _aws_to_cell(r["CreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -545,11 +569,11 @@ module iam:
           let header = "| PolicyName | PolicyId | Arn | AttachmentCount |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["PolicyName"]) +
-                        " | " + _aws_to_cell(p["PolicyId"]) +
-                        " | " + _aws_to_cell(p["Arn"]) +
-                        " | " + _aws_to_cell(p["AttachmentCount"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["PolicyName"]) +
+                " | " + _aws_to_cell(p["PolicyId"]) +
+                " | " + _aws_to_cell(p["Arn"]) +
+                " | " + _aws_to_cell(p["AttachmentCount"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -574,11 +598,11 @@ module iam:
           let header = "| GroupName | GroupId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(g):
-                      "| " + _aws_to_cell(g["GroupName"]) +
-                        " | " + _aws_to_cell(g["GroupId"]) +
-                        " | " + _aws_to_cell(g["Arn"]) +
-                        " | " + _aws_to_cell(g["CreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(g["GroupName"]) +
+                " | " + _aws_to_cell(g["GroupId"]) +
+                " | " + _aws_to_cell(g["Arn"]) +
+                " | " + _aws_to_cell(g["CreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -603,11 +627,11 @@ module iam:
           let header = "| InstanceProfileName | InstanceProfileId | Arn | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["InstanceProfileName"]) +
-                        " | " + _aws_to_cell(p["InstanceProfileId"]) +
-                        " | " + _aws_to_cell(p["Arn"]) +
-                        " | " + _aws_to_cell(p["CreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["InstanceProfileName"]) +
+                " | " + _aws_to_cell(p["InstanceProfileId"]) +
+                " | " + _aws_to_cell(p["Arn"]) +
+                " | " + _aws_to_cell(p["CreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -632,11 +656,11 @@ module iam:
           let header = "| UserName | AccessKeyId | Status | CreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(k):
-                      "| " + _aws_to_cell(k["UserName"]) +
-                        " | " + _aws_to_cell(k["AccessKeyId"]) +
-                        " | " + _aws_to_cell(k["Status"]) +
-                        " | " + _aws_to_cell(k["CreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(k["UserName"]) +
+                " | " + _aws_to_cell(k["AccessKeyId"]) +
+                " | " + _aws_to_cell(k["Status"]) +
+                " | " + _aws_to_cell(k["CreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -661,10 +685,10 @@ module iam:
           let header = "| UserName | SerialNumber | EnableDate |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(d):
-                      "| " + _aws_to_cell(d["UserName"]) +
-                        " | " + _aws_to_cell(d["SerialNumber"]) +
-                        " | " + _aws_to_cell(d["EnableDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(d["UserName"]) +
+                " | " + _aws_to_cell(d["SerialNumber"]) +
+                " | " + _aws_to_cell(d["EnableDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -673,6 +697,20 @@ end
 |
 
 module lambda:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract functions from a ListFunctions response.
   def functions(response):
     if (is_none(response["Functions"])): [] else: response["Functions"]
@@ -708,13 +746,13 @@ module lambda:
           let header = "| FunctionName | Runtime | Handler | MemorySize | Timeout | State |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(f):
-                      "| " + _aws_to_cell(f["FunctionName"]) +
-                        " | " + _aws_to_cell(f["Runtime"]) +
-                        " | " + _aws_to_cell(f["Handler"]) +
-                        " | " + _aws_to_cell(f["MemorySize"]) +
-                        " | " + _aws_to_cell(f["Timeout"]) +
-                        " | " + _aws_to_cell(f["State"]) + " |"
-                    end)
+              "| " + _aws_to_cell(f["FunctionName"]) +
+                " | " + _aws_to_cell(f["Runtime"]) +
+                " | " + _aws_to_cell(f["Handler"]) +
+                " | " + _aws_to_cell(f["MemorySize"]) +
+                " | " + _aws_to_cell(f["Timeout"]) +
+                " | " + _aws_to_cell(f["State"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -739,12 +777,12 @@ module lambda:
           let header = "| UUID | FunctionArn | EventSourceArn | State | BatchSize |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(m):
-                      "| " + _aws_to_cell(m["UUID"]) +
-                        " | " + _aws_to_cell(m["FunctionArn"]) +
-                        " | " + _aws_to_cell(m["EventSourceArn"]) +
-                        " | " + _aws_to_cell(m["State"]) +
-                        " | " + _aws_to_cell(m["BatchSize"]) + " |"
-                    end)
+              "| " + _aws_to_cell(m["UUID"]) +
+                " | " + _aws_to_cell(m["FunctionArn"]) +
+                " | " + _aws_to_cell(m["EventSourceArn"]) +
+                " | " + _aws_to_cell(m["State"]) +
+                " | " + _aws_to_cell(m["BatchSize"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -769,14 +807,14 @@ module lambda:
           let header = "| LayerName | LayerArn | LatestVersion | CompatibleRuntimes |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(l):
-                      let latest = if (is_none(l["LatestMatchingVersion"])): None else: l["LatestMatchingVersion"]
-                      | let version = if (is_none(latest)): "" else: _aws_to_cell(latest["Version"])
-                      | let runtimes = if (is_none(latest) || is_none(latest["CompatibleRuntimes"])): "" else: _aws_to_cell(latest["CompatibleRuntimes"])
-                      | "| " + _aws_to_cell(l["LayerName"]) +
-                        " | " + _aws_to_cell(l["LayerArn"]) +
-                        " | " + version +
-                        " | " + runtimes + " |"
-                    end)
+              let latest = if (is_none(l["LatestMatchingVersion"])): None else: l["LatestMatchingVersion"]
+              | let version = if (is_none(latest)): "" else: _aws_to_cell(latest["Version"])
+              | let runtimes = if (is_none(latest) || is_none(latest["CompatibleRuntimes"])): "" else: _aws_to_cell(latest["CompatibleRuntimes"])
+              | "| " + _aws_to_cell(l["LayerName"]) +
+                " | " + _aws_to_cell(l["LayerArn"]) +
+                " | " + version +
+                " | " + runtimes + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -785,6 +823,20 @@ end
 |
 
 module rds:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract DB instances from a DescribeDBInstances response.
   def db_instances(response):
     if (is_none(response["DBInstances"])): [] else: response["DBInstances"]
@@ -815,13 +867,13 @@ module rds:
           let header = "| DBInstanceIdentifier | DBInstanceClass | Engine | EngineVersion | Status | MultiAZ |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(i):
-                      "| " + _aws_to_cell(i["DBInstanceIdentifier"]) +
-                        " | " + _aws_to_cell(i["DBInstanceClass"]) +
-                        " | " + _aws_to_cell(i["Engine"]) +
-                        " | " + _aws_to_cell(i["EngineVersion"]) +
-                        " | " + _aws_to_cell(i["DBInstanceStatus"]) +
-                        " | " + _aws_to_cell(i["MultiAZ"]) + " |"
-                    end)
+              "| " + _aws_to_cell(i["DBInstanceIdentifier"]) +
+                " | " + _aws_to_cell(i["DBInstanceClass"]) +
+                " | " + _aws_to_cell(i["Engine"]) +
+                " | " + _aws_to_cell(i["EngineVersion"]) +
+                " | " + _aws_to_cell(i["DBInstanceStatus"]) +
+                " | " + _aws_to_cell(i["MultiAZ"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -856,13 +908,13 @@ module rds:
           let header = "| SnapshotId | DBInstanceIdentifier | Engine | Status | SnapshotType | AllocatedStorage |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["DBSnapshotIdentifier"]) +
-                        " | " + _aws_to_cell(s["DBInstanceIdentifier"]) +
-                        " | " + _aws_to_cell(s["Engine"]) +
-                        " | " + _aws_to_cell(s["Status"]) +
-                        " | " + _aws_to_cell(s["SnapshotType"]) +
-                        " | " + _aws_to_cell(s["AllocatedStorage"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["DBSnapshotIdentifier"]) +
+                " | " + _aws_to_cell(s["DBInstanceIdentifier"]) +
+                " | " + _aws_to_cell(s["Engine"]) +
+                " | " + _aws_to_cell(s["Status"]) +
+                " | " + _aws_to_cell(s["SnapshotType"]) +
+                " | " + _aws_to_cell(s["AllocatedStorage"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -892,14 +944,14 @@ module rds:
           let header = "| DBClusterIdentifier | Engine | EngineVersion | Status | MultiAZ | Members |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      let member_count = if (is_none(c["DBClusterMembers"])): 0 else: len(c["DBClusterMembers"])
-                      | "| " + _aws_to_cell(c["DBClusterIdentifier"]) +
-                        " | " + _aws_to_cell(c["Engine"]) +
-                        " | " + _aws_to_cell(c["EngineVersion"]) +
-                        " | " + _aws_to_cell(c["Status"]) +
-                        " | " + _aws_to_cell(c["MultiAZ"]) +
-                        " | " + _aws_to_cell(member_count) + " |"
-                    end)
+              let member_count = if (is_none(c["DBClusterMembers"])): 0 else: len(c["DBClusterMembers"])
+              | "| " + _aws_to_cell(c["DBClusterIdentifier"]) +
+                " | " + _aws_to_cell(c["Engine"]) +
+                " | " + _aws_to_cell(c["EngineVersion"]) +
+                " | " + _aws_to_cell(c["Status"]) +
+                " | " + _aws_to_cell(c["MultiAZ"]) +
+                " | " + _aws_to_cell(member_count) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -908,6 +960,20 @@ end
 |
 
 module cloudformation:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract stacks from a DescribeStacks response.
   def stacks(response):
     if (is_none(response["Stacks"])): [] else: response["Stacks"]
@@ -957,10 +1023,10 @@ module cloudformation:
           let header = "| StackName | StackStatus | CreationTime |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["StackName"]) +
-                        " | " + _aws_to_cell(s["StackStatus"]) +
-                        " | " + _aws_to_cell(s["CreationTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["StackName"]) +
+                " | " + _aws_to_cell(s["StackStatus"]) +
+                " | " + _aws_to_cell(s["CreationTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -969,6 +1035,11 @@ end
 |
 
 module sqs:
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract queue URLs from a ListQueues response.
   def queue_urls(response):
     if (is_none(response["QueueUrls"])): [] else: response["QueueUrls"]
@@ -994,9 +1065,9 @@ module sqs:
           let header = "| QueueName | QueueUrl |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(url):
-                      "| " + fold(split(url, "/"), "", fn(_, p): p;) +
-                        " | " + url + " |"
-                    end)
+              "| " + fold(split(url, "/"), "", fn(_, p): p;) +
+                " | " + url + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1020,6 +1091,20 @@ end
 |
 
 module sns:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract topics from a ListTopics response.
   def topics(response):
     if (is_none(response["Topics"])): [] else: response["Topics"]
@@ -1069,10 +1154,10 @@ module sns:
           let header = "| Protocol | Endpoint | TopicArn |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["Protocol"]) +
-                        " | " + _aws_to_cell(s["Endpoint"]) +
-                        " | " + _aws_to_cell(s["TopicArn"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["Protocol"]) +
+                " | " + _aws_to_cell(s["Endpoint"]) +
+                " | " + _aws_to_cell(s["TopicArn"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1081,6 +1166,20 @@ end
 |
 
 module ecs:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract clusters from a DescribeClusters response (ECS uses lowercase keys).
   def clusters(response):
     if (is_none(response["clusters"])): [] else: response["clusters"]
@@ -1106,12 +1205,12 @@ module ecs:
           let header = "| ClusterName | Status | Instances | RunningTasks | ActiveServices |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      "| " + _aws_to_cell(c["clusterName"]) +
-                        " | " + _aws_to_cell(c["status"]) +
-                        " | " + _aws_to_cell(c["registeredContainerInstancesCount"]) +
-                        " | " + _aws_to_cell(c["runningTasksCount"]) +
-                        " | " + _aws_to_cell(c["activeServicesCount"]) + " |"
-                    end)
+              "| " + _aws_to_cell(c["clusterName"]) +
+                " | " + _aws_to_cell(c["status"]) +
+                " | " + _aws_to_cell(c["registeredContainerInstancesCount"]) +
+                " | " + _aws_to_cell(c["runningTasksCount"]) +
+                " | " + _aws_to_cell(c["activeServicesCount"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1136,12 +1235,12 @@ module ecs:
           let header = "| ServiceName | Status | Desired | Running | Pending |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["serviceName"]) +
-                        " | " + _aws_to_cell(s["status"]) +
-                        " | " + _aws_to_cell(s["desiredCount"]) +
-                        " | " + _aws_to_cell(s["runningCount"]) +
-                        " | " + _aws_to_cell(s["pendingCount"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["serviceName"]) +
+                " | " + _aws_to_cell(s["status"]) +
+                " | " + _aws_to_cell(s["desiredCount"]) +
+                " | " + _aws_to_cell(s["runningCount"]) +
+                " | " + _aws_to_cell(s["pendingCount"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1166,12 +1265,12 @@ module ecs:
           let header = "| TaskArn | LastStatus | DesiredStatus | Cpu | Memory |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(t):
-                      "| " + _aws_to_cell(t["taskArn"]) +
-                        " | " + _aws_to_cell(t["lastStatus"]) +
-                        " | " + _aws_to_cell(t["desiredStatus"]) +
-                        " | " + _aws_to_cell(t["cpu"]) +
-                        " | " + _aws_to_cell(t["memory"]) + " |"
-                    end)
+              "| " + _aws_to_cell(t["taskArn"]) +
+                " | " + _aws_to_cell(t["lastStatus"]) +
+                " | " + _aws_to_cell(t["desiredStatus"]) +
+                " | " + _aws_to_cell(t["cpu"]) +
+                " | " + _aws_to_cell(t["memory"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1229,6 +1328,20 @@ end
 |
 
 module dynamodb:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract table names from a ListTables response.
   def table_names(response):
     if (is_none(response["TableNames"])): [] else: response["TableNames"]
@@ -1310,12 +1423,12 @@ module dynamodb:
           let header = "| TableName | BackupName | BackupStatus | BackupType | CreationDateTime |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(b):
-                      "| " + _aws_to_cell(b["TableName"]) +
-                        " | " + _aws_to_cell(b["BackupName"]) +
-                        " | " + _aws_to_cell(b["BackupStatus"]) +
-                        " | " + _aws_to_cell(b["BackupType"]) +
-                        " | " + _aws_to_cell(b["BackupCreationDateTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(b["TableName"]) +
+                " | " + _aws_to_cell(b["BackupName"]) +
+                " | " + _aws_to_cell(b["BackupStatus"]) +
+                " | " + _aws_to_cell(b["BackupType"]) +
+                " | " + _aws_to_cell(b["BackupCreationDateTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1324,6 +1437,20 @@ end
 |
 
 module cloudwatch:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract metric alarms from a DescribeAlarms response.
   def alarms(response):
     if (is_none(response["MetricAlarms"])): [] else: response["MetricAlarms"]
@@ -1364,12 +1491,12 @@ module cloudwatch:
           let header = "| AlarmName | State | Namespace | MetricName | Threshold |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["AlarmName"]) +
-                        " | " + _aws_to_cell(a["StateValue"]) +
-                        " | " + _aws_to_cell(a["Namespace"]) +
-                        " | " + _aws_to_cell(a["MetricName"]) +
-                        " | " + _aws_to_cell(a["Threshold"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["AlarmName"]) +
+                " | " + _aws_to_cell(a["StateValue"]) +
+                " | " + _aws_to_cell(a["Namespace"]) +
+                " | " + _aws_to_cell(a["MetricName"]) +
+                " | " + _aws_to_cell(a["Threshold"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1399,10 +1526,10 @@ module cloudwatch:
           let header = "| LogGroupName | RetentionDays | StoredBytes |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(g):
-                      "| " + _aws_to_cell(g["logGroupName"]) +
-                        " | " + _aws_to_cell(g["retentionInDays"]) +
-                        " | " + _aws_to_cell(g["storedBytes"]) + " |"
-                    end)
+              "| " + _aws_to_cell(g["logGroupName"]) +
+                " | " + _aws_to_cell(g["retentionInDays"]) +
+                " | " + _aws_to_cell(g["storedBytes"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1427,9 +1554,9 @@ module cloudwatch:
           let header = "| LogStreamName | StoredBytes |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["logStreamName"]) +
-                        " | " + _aws_to_cell(s["storedBytes"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["logStreamName"]) +
+                " | " + _aws_to_cell(s["storedBytes"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1454,11 +1581,11 @@ module cloudwatch:
           let header = "| DashboardName | DashboardArn | LastModified | Size |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(d):
-                      "| " + _aws_to_cell(d["DashboardName"]) +
-                        " | " + _aws_to_cell(d["DashboardArn"]) +
-                        " | " + _aws_to_cell(d["LastModified"]) +
-                        " | " + _aws_to_cell(d["Size"]) + " |"
-                    end)
+              "| " + _aws_to_cell(d["DashboardName"]) +
+                " | " + _aws_to_cell(d["DashboardArn"]) +
+                " | " + _aws_to_cell(d["LastModified"]) +
+                " | " + _aws_to_cell(d["Size"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1467,6 +1594,20 @@ end
 |
 
 module ssm:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract parameters from a DescribeParameters or GetParametersByPath response.
   def parameters(response):
     if (is_none(response["Parameters"])): [] else: response["Parameters"]
@@ -1497,10 +1638,10 @@ module ssm:
           let header = "| Name | Type | LastModifiedDate |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["Name"]) +
-                        " | " + _aws_to_cell(p["Type"]) +
-                        " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["Name"]) +
+                " | " + _aws_to_cell(p["Type"]) +
+                " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1509,6 +1650,20 @@ end
 |
 
 module secretsmanager:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract secrets from a ListSecrets response.
   def secrets(response):
     if (is_none(response["SecretList"])): [] else: response["SecretList"]
@@ -1529,19 +1684,31 @@ module secretsmanager:
           let header = "| Name | ARN | Description | LastChangedDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(s):
-                      "| " + _aws_to_cell(s["Name"]) +
-                        " | " + _aws_to_cell(s["ARN"]) +
-                        " | " + _aws_to_cell(s["Description"]) +
-                        " | " + _aws_to_cell(s["LastChangedDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(s["Name"]) +
+                " | " + _aws_to_cell(s["ARN"]) +
+                " | " + _aws_to_cell(s["Description"]) +
+                " | " + _aws_to_cell(s["LastChangedDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module elbv2:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract load balancers from a DescribeLoadBalancers response.
   def load_balancers(response):
     if (is_none(response["LoadBalancers"])): [] else: response["LoadBalancers"]
@@ -1574,12 +1741,12 @@ module elbv2:
           let header = "| Name | Type | Scheme | State | DNSName |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(lb):
-                      "| " + _aws_to_cell(lb["LoadBalancerName"]) +
-                        " | " + _aws_to_cell(lb["Type"]) +
-                        " | " + _aws_to_cell(lb["Scheme"]) +
-                        " | " + (if (is_none(lb["State"])): "" else: _aws_to_cell(lb["State"]["Code"])) +
-                        " | " + _aws_to_cell(lb["DNSName"]) + " |"
-                    end)
+              "| " + _aws_to_cell(lb["LoadBalancerName"]) +
+                " | " + _aws_to_cell(lb["Type"]) +
+                " | " + _aws_to_cell(lb["Scheme"]) +
+                " | " + (if (is_none(lb["State"])): "" else: _aws_to_cell(lb["State"]["Code"])) +
+                " | " + _aws_to_cell(lb["DNSName"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1604,19 +1771,31 @@ module elbv2:
           let header = "| TargetGroupName | Protocol | Port | TargetType |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(tg):
-                      "| " + _aws_to_cell(tg["TargetGroupName"]) +
-                        " | " + _aws_to_cell(tg["Protocol"]) +
-                        " | " + _aws_to_cell(tg["Port"]) +
-                        " | " + _aws_to_cell(tg["TargetType"]) + " |"
-                    end)
+              "| " + _aws_to_cell(tg["TargetGroupName"]) +
+                " | " + _aws_to_cell(tg["Protocol"]) +
+                " | " + _aws_to_cell(tg["Port"]) +
+                " | " + _aws_to_cell(tg["TargetType"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module route53:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract hosted zones from a ListHostedZones response.
   def hosted_zones(response):
     if (is_none(response["HostedZones"])): [] else: response["HostedZones"]
@@ -1651,11 +1830,11 @@ module route53:
           let header = "| Name | Id | Private | RecordSets |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(z):
-                      "| " + _aws_to_cell(z["Name"]) +
-                        " | " + _aws_to_cell(z["Id"]) +
-                        " | " + (if (is_none(z["Config"])): "" else: _aws_to_cell(z["Config"]["PrivateZone"])) +
-                        " | " + _aws_to_cell(z["ResourceRecordSetCount"]) + " |"
-                    end)
+              "| " + _aws_to_cell(z["Name"]) +
+                " | " + _aws_to_cell(z["Id"]) +
+                " | " + (if (is_none(z["Config"])): "" else: _aws_to_cell(z["Config"]["PrivateZone"])) +
+                " | " + _aws_to_cell(z["ResourceRecordSetCount"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1680,10 +1859,10 @@ module route53:
           let header = "| Name | Type | TTL |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
-                      "| " + _aws_to_cell(r["Name"]) +
-                        " | " + _aws_to_cell(r["Type"]) +
-                        " | " + _aws_to_cell(r["TTL"]) + " |"
-                    end)
+              "| " + _aws_to_cell(r["Name"]) +
+                " | " + _aws_to_cell(r["Type"]) +
+                " | " + _aws_to_cell(r["TTL"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1715,24 +1894,36 @@ module route53:
           let header = "| Id | Type | FQDN | Port | Version |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(hc):
-                      let cfg = if (is_none(hc["HealthCheckConfig"])): None else: hc["HealthCheckConfig"]
-                      | let hc_type = if (is_none(cfg)): "" else: _aws_to_cell(cfg["Type"])
-                      | let fqdn = if (is_none(cfg) || is_none(cfg["FullyQualifiedDomainName"])): "" else: _aws_to_cell(cfg["FullyQualifiedDomainName"])
-                      | let port = if (is_none(cfg) || is_none(cfg["Port"])): "" else: _aws_to_cell(cfg["Port"])
-                      | "| " + _aws_to_cell(hc["Id"]) +
-                        " | " + hc_type +
-                        " | " + fqdn +
-                        " | " + port +
-                        " | " + _aws_to_cell(hc["HealthCheckVersion"]) + " |"
-                    end)
+              let cfg = if (is_none(hc["HealthCheckConfig"])): None else: hc["HealthCheckConfig"]
+              | let hc_type = if (is_none(cfg)): "" else: _aws_to_cell(cfg["Type"])
+              | let fqdn = if (is_none(cfg) || is_none(cfg["FullyQualifiedDomainName"])): "" else: _aws_to_cell(cfg["FullyQualifiedDomainName"])
+              | let port = if (is_none(cfg) || is_none(cfg["Port"])): "" else: _aws_to_cell(cfg["Port"])
+              | "| " + _aws_to_cell(hc["Id"]) +
+                " | " + hc_type +
+                " | " + fqdn +
+                " | " + port +
+                " | " + _aws_to_cell(hc["HealthCheckVersion"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module eks:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract cluster names from a ListClusters response.
   def cluster_names(response):
     if (is_none(response["clusters"])): [] else: response["clusters"]
@@ -1835,9 +2026,21 @@ module eks:
   end
 end
 
-|
-
 module kinesis:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract stream names from a ListStreams response.
   def stream_names(response):
     if (is_none(response["StreamNames"])): [] else: response["StreamNames"]
@@ -1902,9 +2105,21 @@ module kinesis:
   end
 end
 
-|
-
 module elasticache:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract cache clusters from a DescribeCacheClusters response.
   def cache_clusters(response):
     if (is_none(response["CacheClusters"])): [] else: response["CacheClusters"]
@@ -1935,13 +2150,13 @@ module elasticache:
           let header = "| CacheClusterId | Engine | EngineVersion | Status | NodeType | NumNodes |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      "| " + _aws_to_cell(c["CacheClusterId"]) +
-                        " | " + _aws_to_cell(c["Engine"]) +
-                        " | " + _aws_to_cell(c["EngineVersion"]) +
-                        " | " + _aws_to_cell(c["CacheClusterStatus"]) +
-                        " | " + _aws_to_cell(c["CacheNodeType"]) +
-                        " | " + _aws_to_cell(c["NumCacheNodes"]) + " |"
-                    end)
+              "| " + _aws_to_cell(c["CacheClusterId"]) +
+                " | " + _aws_to_cell(c["Engine"]) +
+                " | " + _aws_to_cell(c["EngineVersion"]) +
+                " | " + _aws_to_cell(c["CacheClusterStatus"]) +
+                " | " + _aws_to_cell(c["CacheNodeType"]) +
+                " | " + _aws_to_cell(c["NumCacheNodes"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -1971,19 +2186,31 @@ module elasticache:
           let header = "| ReplicationGroupId | Description | Status | MultiAZ |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(rg):
-                      "| " + _aws_to_cell(rg["ReplicationGroupId"]) +
-                        " | " + _aws_to_cell(rg["Description"]) +
-                        " | " + _aws_to_cell(rg["Status"]) +
-                        " | " + _aws_to_cell(rg["MultiAZ"]) + " |"
-                    end)
+              "| " + _aws_to_cell(rg["ReplicationGroupId"]) +
+                " | " + _aws_to_cell(rg["Description"]) +
+                " | " + _aws_to_cell(rg["Status"]) +
+                " | " + _aws_to_cell(rg["MultiAZ"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module apigateway:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract REST APIs from a GetRestApis response (API Gateway v1).
   def rest_apis(response):
     if (is_none(response["items"])): [] else: response["items"]
@@ -2004,11 +2231,11 @@ module apigateway:
           let header = "| Name | Id | Description | CreatedDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["name"]) +
-                        " | " + _aws_to_cell(a["id"]) +
-                        " | " + _aws_to_cell(a["description"]) +
-                        " | " + _aws_to_cell(a["createdDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["name"]) +
+                " | " + _aws_to_cell(a["id"]) +
+                " | " + _aws_to_cell(a["description"]) +
+                " | " + _aws_to_cell(a["createdDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2038,19 +2265,31 @@ module apigateway:
           let header = "| Name | ApiId | ProtocolType | ApiEndpoint |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["Name"]) +
-                        " | " + _aws_to_cell(a["ApiId"]) +
-                        " | " + _aws_to_cell(a["ProtocolType"]) +
-                        " | " + _aws_to_cell(a["ApiEndpoint"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["Name"]) +
+                " | " + _aws_to_cell(a["ApiId"]) +
+                " | " + _aws_to_cell(a["ProtocolType"]) +
+                " | " + _aws_to_cell(a["ApiEndpoint"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module stepfunctions:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract state machines from a ListStateMachines response.
   def state_machines(response):
     if (is_none(response["stateMachines"])): [] else: response["stateMachines"]
@@ -2076,10 +2315,10 @@ module stepfunctions:
           let header = "| Name | Type | CreationDate |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(sm):
-                      "| " + _aws_to_cell(sm["name"]) +
-                        " | " + _aws_to_cell(sm["type"]) +
-                        " | " + _aws_to_cell(sm["creationDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(sm["name"]) +
+                " | " + _aws_to_cell(sm["type"]) +
+                " | " + _aws_to_cell(sm["creationDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2109,19 +2348,31 @@ module stepfunctions:
           let header = "| Name | Status | StartDate | StopDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(e):
-                      "| " + _aws_to_cell(e["name"]) +
-                        " | " + _aws_to_cell(e["status"]) +
-                        " | " + _aws_to_cell(e["startDate"]) +
-                        " | " + _aws_to_cell(e["stopDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(e["name"]) +
+                " | " + _aws_to_cell(e["status"]) +
+                " | " + _aws_to_cell(e["startDate"]) +
+                " | " + _aws_to_cell(e["stopDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module eventbridge:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract rules from a ListRules response.
   def rules(response):
     if (is_none(response["Rules"])): [] else: response["Rules"]
@@ -2152,11 +2403,11 @@ module eventbridge:
           let header = "| Name | State | ScheduleExpression | EventBusName |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(r):
-                      "| " + _aws_to_cell(r["Name"]) +
-                        " | " + _aws_to_cell(r["State"]) +
-                        " | " + _aws_to_cell(r["ScheduleExpression"]) +
-                        " | " + _aws_to_cell(r["EventBusName"]) + " |"
-                    end)
+              "| " + _aws_to_cell(r["Name"]) +
+                " | " + _aws_to_cell(r["State"]) +
+                " | " + _aws_to_cell(r["ScheduleExpression"]) +
+                " | " + _aws_to_cell(r["EventBusName"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2181,17 +2432,29 @@ module eventbridge:
           let header = "| Name | Arn |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(b):
-                      "| " + _aws_to_cell(b["Name"]) +
-                        " | " + _aws_to_cell(b["Arn"]) + " |"
-                    end)
+              "| " + _aws_to_cell(b["Name"]) +
+                " | " + _aws_to_cell(b["Arn"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module ecr:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract repositories from a DescribeRepositories response.
   def repositories(response):
     if (is_none(response["repositories"])): [] else: response["repositories"]
@@ -2212,10 +2475,10 @@ module ecr:
           let header = "| RepositoryName | RepositoryUri | CreatedAt |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(r):
-                      "| " + _aws_to_cell(r["repositoryName"]) +
-                        " | " + _aws_to_cell(r["repositoryUri"]) +
-                        " | " + _aws_to_cell(r["createdAt"]) + " |"
-                    end)
+              "| " + _aws_to_cell(r["repositoryName"]) +
+                " | " + _aws_to_cell(r["repositoryUri"]) +
+                " | " + _aws_to_cell(r["createdAt"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2247,21 +2510,33 @@ module ecr:
           let header = "| RepositoryName | ImageDigest | Tags | SizeBytes | PushedAt |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(img):
-                      let tags = if (is_none(img["imageTags"])): "" else: join(img["imageTags"], ",")
-                      | "| " + _aws_to_cell(img["repositoryName"]) +
-                        " | " + _aws_to_cell(img["imageDigest"]) +
-                        " | " + tags +
-                        " | " + _aws_to_cell(img["imageSizeInBytes"]) +
-                        " | " + _aws_to_cell(img["imagePushedAt"]) + " |"
-                    end)
+              let tags = if (is_none(img["imageTags"])): "" else: join(img["imageTags"], ",")
+              | "| " + _aws_to_cell(img["repositoryName"]) +
+                " | " + _aws_to_cell(img["imageDigest"]) +
+                " | " + tags +
+                " | " + _aws_to_cell(img["imageSizeInBytes"]) +
+                " | " + _aws_to_cell(img["imagePushedAt"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module cognito:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract user pools from a ListUserPools response.
   def user_pools(response):
     if (is_none(response["UserPools"])): [] else: response["UserPools"]
@@ -2282,12 +2557,12 @@ module cognito:
           let header = "| Name | Id | Status | CreationDate | LastModifiedDate |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["Name"]) +
-                        " | " + _aws_to_cell(p["Id"]) +
-                        " | " + _aws_to_cell(p["Status"]) +
-                        " | " + _aws_to_cell(p["CreationDate"]) +
-                        " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["Name"]) +
+                " | " + _aws_to_cell(p["Id"]) +
+                " | " + _aws_to_cell(p["Status"]) +
+                " | " + _aws_to_cell(p["CreationDate"]) +
+                " | " + _aws_to_cell(p["LastModifiedDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2334,19 +2609,31 @@ module cognito:
           let header = "| Username | Status | Enabled | UserCreateDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(u):
-                      "| " + _aws_to_cell(u["Username"]) +
-                        " | " + _aws_to_cell(u["UserStatus"]) +
-                        " | " + _aws_to_cell(u["Enabled"]) +
-                        " | " + _aws_to_cell(u["UserCreateDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(u["Username"]) +
+                " | " + _aws_to_cell(u["UserStatus"]) +
+                " | " + _aws_to_cell(u["Enabled"]) +
+                " | " + _aws_to_cell(u["UserCreateDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module cloudfront:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract distributions from a ListDistributions response.
   def distributions(response):
     if (is_none(response["DistributionList"])): []
@@ -2379,20 +2666,32 @@ module cloudfront:
           let header = "| Id | DomainName | Status | Enabled | Comment |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(d):
-                      "| " + _aws_to_cell(d["Id"]) +
-                        " | " + _aws_to_cell(d["DomainName"]) +
-                        " | " + _aws_to_cell(d["Status"]) +
-                        " | " + _aws_to_cell(d["Enabled"]) +
-                        " | " + _aws_to_cell(d["Comment"]) + " |"
-                    end)
+              "| " + _aws_to_cell(d["Id"]) +
+                " | " + _aws_to_cell(d["DomainName"]) +
+                " | " + _aws_to_cell(d["Status"]) +
+                " | " + _aws_to_cell(d["Enabled"]) +
+                " | " + _aws_to_cell(d["Comment"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module acm:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract certificates from a ListCertificates response.
   def certificates(response):
     if (is_none(response["CertificateSummaryList"])): [] else: response["CertificateSummaryList"]
@@ -2418,18 +2717,30 @@ module acm:
           let header = "| DomainName | Status | CertificateArn |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      "| " + _aws_to_cell(c["DomainName"]) +
-                        " | " + _aws_to_cell(c["Status"]) +
-                        " | " + _aws_to_cell(c["CertificateArn"]) + " |"
-                    end)
+              "| " + _aws_to_cell(c["DomainName"]) +
+                " | " + _aws_to_cell(c["Status"]) +
+                " | " + _aws_to_cell(c["CertificateArn"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module kms:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract keys from a ListKeys response.
   def keys(response):
     if (is_none(response["Keys"])): [] else: response["Keys"]
@@ -2450,9 +2761,9 @@ module kms:
           let header = "| KeyId | KeyArn |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(k):
-                      "| " + _aws_to_cell(k["KeyId"]) +
-                        " | " + _aws_to_cell(k["KeyArn"]) + " |"
-                    end)
+              "| " + _aws_to_cell(k["KeyId"]) +
+                " | " + _aws_to_cell(k["KeyArn"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2482,18 +2793,30 @@ module kms:
           let header = "| AliasName | TargetKeyId | AliasArn |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["AliasName"]) +
-                        " | " + _aws_to_cell(a["TargetKeyId"]) +
-                        " | " + _aws_to_cell(a["AliasArn"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["AliasName"]) +
+                " | " + _aws_to_cell(a["TargetKeyId"]) +
+                " | " + _aws_to_cell(a["AliasArn"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module cloudtrail:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract trails from a DescribeTrails response.
   def trails(response):
     if (is_none(response["trailList"])): [] else: response["trailList"]
@@ -2524,20 +2847,32 @@ module cloudtrail:
           let header = "| Name | S3Bucket | MultiRegion | LogValidation | HomeRegion |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(t):
-                      "| " + _aws_to_cell(t["Name"]) +
-                        " | " + _aws_to_cell(t["S3BucketName"]) +
-                        " | " + _aws_to_cell(t["IsMultiRegionTrail"]) +
-                        " | " + _aws_to_cell(t["LogFileValidationEnabled"]) +
-                        " | " + _aws_to_cell(t["HomeRegion"]) + " |"
-                    end)
+              "| " + _aws_to_cell(t["Name"]) +
+                " | " + _aws_to_cell(t["S3BucketName"]) +
+                " | " + _aws_to_cell(t["IsMultiRegionTrail"]) +
+                " | " + _aws_to_cell(t["LogFileValidationEnabled"]) +
+                " | " + _aws_to_cell(t["HomeRegion"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module ses:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract identities from a ListIdentities response.
   def identities(response):
     if (is_none(response["Identities"])): [] else: response["Identities"]
@@ -2592,20 +2927,32 @@ module ses:
           let header = "| Timestamp | DeliveryAttempts | Bounces | Complaints | Rejects |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["Timestamp"]) +
-                        " | " + _aws_to_cell(p["DeliveryAttempts"]) +
-                        " | " + _aws_to_cell(p["Bounces"]) +
-                        " | " + _aws_to_cell(p["Complaints"]) +
-                        " | " + _aws_to_cell(p["Rejects"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["Timestamp"]) +
+                " | " + _aws_to_cell(p["DeliveryAttempts"]) +
+                " | " + _aws_to_cell(p["Bounces"]) +
+                " | " + _aws_to_cell(p["Complaints"]) +
+                " | " + _aws_to_cell(p["Rejects"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module redshift:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract clusters from a DescribeClusters response.
   def clusters(response):
     if (is_none(response["Clusters"])): [] else: response["Clusters"]
@@ -2631,21 +2978,33 @@ module redshift:
           let header = "| ClusterIdentifier | NodeType | Status | DBName | Nodes | PubliclyAccessible |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      "| " + _aws_to_cell(c["ClusterIdentifier"]) +
-                        " | " + _aws_to_cell(c["NodeType"]) +
-                        " | " + _aws_to_cell(c["ClusterStatus"]) +
-                        " | " + _aws_to_cell(c["DBName"]) +
-                        " | " + _aws_to_cell(c["NumberOfNodes"]) +
-                        " | " + _aws_to_cell(c["PubliclyAccessible"]) + " |"
-                    end)
+              "| " + _aws_to_cell(c["ClusterIdentifier"]) +
+                " | " + _aws_to_cell(c["NodeType"]) +
+                " | " + _aws_to_cell(c["ClusterStatus"]) +
+                " | " + _aws_to_cell(c["DBName"]) +
+                " | " + _aws_to_cell(c["NumberOfNodes"]) +
+                " | " + _aws_to_cell(c["PubliclyAccessible"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module codepipeline:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract pipelines from a ListPipelines response.
   def pipelines(response):
     if (is_none(response["pipelines"])): [] else: response["pipelines"]
@@ -2666,10 +3025,10 @@ module codepipeline:
           let header = "| Name | Version | Updated |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["name"]) +
-                        " | " + _aws_to_cell(p["version"]) +
-                        " | " + _aws_to_cell(p["updated"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["name"]) +
+                " | " + _aws_to_cell(p["version"]) +
+                " | " + _aws_to_cell(p["updated"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2703,18 +3062,30 @@ module codepipeline:
           let header = "| StageName | Status |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(s):
-                      let status = if (is_none(s["latestExecution"])): "" else: _aws_to_cell(s["latestExecution"]["status"])
-                      | "| " + _aws_to_cell(s["stageName"]) +
-                        " | " + status + " |"
-                    end)
+              let status = if (is_none(s["latestExecution"])): "" else: _aws_to_cell(s["latestExecution"]["status"])
+              | "| " + _aws_to_cell(s["stageName"]) +
+                " | " + status + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module codebuild:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract project names from a ListProjects response.
   def project_names(response):
     if (is_none(response["projects"])): [] else: response["projects"]
@@ -2769,20 +3140,32 @@ module codebuild:
           let header = "| Id | ProjectName | Status | StartTime | EndTime |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(b):
-                      "| " + _aws_to_cell(b["id"]) +
-                        " | " + _aws_to_cell(b["projectName"]) +
-                        " | " + _aws_to_cell(b["buildStatus"]) +
-                        " | " + _aws_to_cell(b["startTime"]) +
-                        " | " + _aws_to_cell(b["endTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(b["id"]) +
+                " | " + _aws_to_cell(b["projectName"]) +
+                " | " + _aws_to_cell(b["buildStatus"]) +
+                " | " + _aws_to_cell(b["startTime"]) +
+                " | " + _aws_to_cell(b["endTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module waf:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract Web ACLs from a ListWebACLs response (WAFv2).
   def web_acls(response):
     if (is_none(response["WebACLs"])): [] else: response["WebACLs"]
@@ -2803,19 +3186,31 @@ module waf:
           let header = "| Name | Id | Description | ARN |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(a):
-                      "| " + _aws_to_cell(a["Name"]) +
-                        " | " + _aws_to_cell(a["Id"]) +
-                        " | " + _aws_to_cell(a["Description"]) +
-                        " | " + _aws_to_cell(a["ARN"]) + " |"
-                    end)
+              "| " + _aws_to_cell(a["Name"]) +
+                " | " + _aws_to_cell(a["Id"]) +
+                " | " + _aws_to_cell(a["Description"]) +
+                " | " + _aws_to_cell(a["ARN"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module glue:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract ETL jobs from a GetJobs response.
   def jobs(response):
     if (is_none(response["Jobs"])): [] else: response["Jobs"]
@@ -2836,11 +3231,11 @@ module glue:
           let header = "| Name | Role | MaxRetries | Timeout |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(j):
-                      "| " + _aws_to_cell(j["Name"]) +
-                        " | " + _aws_to_cell(j["Role"]) +
-                        " | " + _aws_to_cell(j["MaxRetries"]) +
-                        " | " + _aws_to_cell(j["Timeout"]) + " |"
-                    end)
+              "| " + _aws_to_cell(j["Name"]) +
+                " | " + _aws_to_cell(j["Role"]) +
+                " | " + _aws_to_cell(j["MaxRetries"]) +
+                " | " + _aws_to_cell(j["Timeout"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2875,20 +3270,32 @@ module glue:
           let header = "| Name | State | Role | LastStatus |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(c):
-                      let last_status = if (is_none(c["LastCrawl"])): "" else: _aws_to_cell(c["LastCrawl"]["Status"])
-                      | "| " + _aws_to_cell(c["Name"]) +
-                        " | " + _aws_to_cell(c["State"]) +
-                        " | " + _aws_to_cell(c["Role"]) +
-                        " | " + last_status + " |"
-                    end)
+              let last_status = if (is_none(c["LastCrawl"])): "" else: _aws_to_cell(c["LastCrawl"]["Status"])
+              | "| " + _aws_to_cell(c["Name"]) +
+                " | " + _aws_to_cell(c["State"]) +
+                " | " + _aws_to_cell(c["Role"]) +
+                " | " + last_status + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module autoscaling:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract Auto Scaling groups from a DescribeAutoScalingGroups response.
   def groups(response):
     if (is_none(response["AutoScalingGroups"])): [] else: response["AutoScalingGroups"]
@@ -2914,13 +3321,13 @@ module autoscaling:
           let header = "| GroupName | MinSize | MaxSize | DesiredCapacity | Instances |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(g):
-                      let instance_count = if (is_none(g["Instances"])): 0 else: len(g["Instances"])
-                      | "| " + _aws_to_cell(g["AutoScalingGroupName"]) +
-                        " | " + _aws_to_cell(g["MinSize"]) +
-                        " | " + _aws_to_cell(g["MaxSize"]) +
-                        " | " + _aws_to_cell(g["DesiredCapacity"]) +
-                        " | " + _aws_to_cell(instance_count) + " |"
-                    end)
+              let instance_count = if (is_none(g["Instances"])): 0 else: len(g["Instances"])
+              | "| " + _aws_to_cell(g["AutoScalingGroupName"]) +
+                " | " + _aws_to_cell(g["MinSize"]) +
+                " | " + _aws_to_cell(g["MaxSize"]) +
+                " | " + _aws_to_cell(g["DesiredCapacity"]) +
+                " | " + _aws_to_cell(instance_count) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -2950,18 +3357,30 @@ module autoscaling:
           let header = "| PolicyName | PolicyType | AutoScalingGroupName |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["PolicyName"]) +
-                        " | " + _aws_to_cell(p["PolicyType"]) +
-                        " | " + _aws_to_cell(p["AutoScalingGroupName"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["PolicyName"]) +
+                " | " + _aws_to_cell(p["PolicyType"]) +
+                " | " + _aws_to_cell(p["AutoScalingGroupName"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module firehose:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract delivery stream names from a ListDeliveryStreams response.
   def stream_names(response):
     if (is_none(response["DeliveryStreamNames"])): [] else: response["DeliveryStreamNames"]
@@ -3016,9 +3435,21 @@ module firehose:
   end
 end
 
-|
-
 module athena:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract workgroups from a ListWorkGroups response.
   def workgroups(response):
     if (is_none(response["WorkGroups"])): [] else: response["WorkGroups"]
@@ -3044,10 +3475,10 @@ module athena:
           let header = "| Name | State | Description |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(w):
-                      "| " + _aws_to_cell(w["Name"]) +
-                        " | " + _aws_to_cell(w["State"]) +
-                        " | " + _aws_to_cell(w["Description"]) + " |"
-                    end)
+              "| " + _aws_to_cell(w["Name"]) +
+                " | " + _aws_to_cell(w["State"]) +
+                " | " + _aws_to_cell(w["Description"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3084,21 +3515,33 @@ module athena:
           let header = "| QueryExecutionId | State | Workgroup | Database |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(q):
-                      let state = if (is_none(q["Status"])): "" else: _aws_to_cell(q["Status"]["State"])
-                      | let db = if (is_none(q["QueryExecutionContext"]) || is_none(q["QueryExecutionContext"]["Database"])): "" else: _aws_to_cell(q["QueryExecutionContext"]["Database"])
-                      | "| " + _aws_to_cell(q["QueryExecutionId"]) +
-                        " | " + state +
-                        " | " + _aws_to_cell(q["WorkGroup"]) +
-                        " | " + db + " |"
-                    end)
+              let state = if (is_none(q["Status"])): "" else: _aws_to_cell(q["Status"]["State"])
+              | let db = if (is_none(q["QueryExecutionContext"]) || is_none(q["QueryExecutionContext"]["Database"])): "" else: _aws_to_cell(q["QueryExecutionContext"]["Database"])
+              | "| " + _aws_to_cell(q["QueryExecutionId"]) +
+                " | " + state +
+                " | " + _aws_to_cell(q["WorkGroup"]) +
+                " | " + db + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module codecommit:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract repositories from a ListRepositories response.
   def repositories(response):
     if (is_none(response["repositories"])): [] else: response["repositories"]
@@ -3119,9 +3562,9 @@ module codecommit:
           let header = "| RepositoryName | RepositoryId |"
           | let sep = "| --- | --- |"
           | let rows = map(data, fn(r):
-                      "| " + _aws_to_cell(r["repositoryName"]) +
-                        " | " + _aws_to_cell(r["repositoryId"]) + " |"
-                    end)
+              "| " + _aws_to_cell(r["repositoryName"]) +
+                " | " + _aws_to_cell(r["repositoryId"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3151,9 +3594,21 @@ module codecommit:
   end
 end
 
-|
-
 module codedeploy:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract application names from a ListApplications response.
   def application_names(response):
     if (is_none(response["applications"])): [] else: response["applications"]
@@ -3208,20 +3663,32 @@ module codedeploy:
           let header = "| DeploymentId | ApplicationName | DeploymentGroup | Status | CreateTime |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(d):
-                      "| " + _aws_to_cell(d["deploymentId"]) +
-                        " | " + _aws_to_cell(d["applicationName"]) +
-                        " | " + _aws_to_cell(d["deploymentGroupName"]) +
-                        " | " + _aws_to_cell(d["status"]) +
-                        " | " + _aws_to_cell(d["createTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(d["deploymentId"]) +
+                " | " + _aws_to_cell(d["applicationName"]) +
+                " | " + _aws_to_cell(d["deploymentGroupName"]) +
+                " | " + _aws_to_cell(d["status"]) +
+                " | " + _aws_to_cell(d["createTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module batch:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract job queues from a DescribeJobQueues response.
   def job_queues(response):
     if (is_none(response["jobQueues"])): [] else: response["jobQueues"]
@@ -3247,11 +3714,11 @@ module batch:
           let header = "| JobQueueName | State | Status | Priority |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(q):
-                      "| " + _aws_to_cell(q["jobQueueName"]) +
-                        " | " + _aws_to_cell(q["state"]) +
-                        " | " + _aws_to_cell(q["status"]) +
-                        " | " + _aws_to_cell(q["priority"]) + " |"
-                    end)
+              "| " + _aws_to_cell(q["jobQueueName"]) +
+                " | " + _aws_to_cell(q["state"]) +
+                " | " + _aws_to_cell(q["status"]) +
+                " | " + _aws_to_cell(q["priority"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3281,11 +3748,11 @@ module batch:
           let header = "| Name | Type | State | Status |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(e):
-                      "| " + _aws_to_cell(e["computeEnvironmentName"]) +
-                        " | " + _aws_to_cell(e["type"]) +
-                        " | " + _aws_to_cell(e["state"]) +
-                        " | " + _aws_to_cell(e["status"]) + " |"
-                    end)
+              "| " + _aws_to_cell(e["computeEnvironmentName"]) +
+                " | " + _aws_to_cell(e["type"]) +
+                " | " + _aws_to_cell(e["state"]) +
+                " | " + _aws_to_cell(e["status"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3320,18 +3787,30 @@ module batch:
           let header = "| JobId | JobName | Status |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(j):
-                      "| " + _aws_to_cell(j["jobId"]) +
-                        " | " + _aws_to_cell(j["jobName"]) +
-                        " | " + _aws_to_cell(j["status"]) + " |"
-                    end)
+              "| " + _aws_to_cell(j["jobId"]) +
+                " | " + _aws_to_cell(j["jobName"]) +
+                " | " + _aws_to_cell(j["status"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module guardduty:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract detector IDs from a ListDetectors response.
   def detector_ids(response):
     if (is_none(response["DetectorIds"])): [] else: response["DetectorIds"]
@@ -3368,12 +3847,12 @@ module guardduty:
 
   # Return high-severity findings (severity >= 7.0).
   def high_severity_findings(response):
-    findings_above_severity(response, 7.0)
+    findings_above_severity(response, 7)
   end
 
   # Return medium-severity findings (4.0 <= severity < 7.0).
   def medium_severity_findings(response):
-    filter(findings(response), fn(f): f["Severity"] >= 4.0 && f["Severity"] < 7.0;)
+    filter(findings(response), fn(f): f["Severity"] >= 4 && f["Severity"] < 7;)
   end
 
   # Convert a GetFindings response to a Markdown table.
@@ -3386,20 +3865,32 @@ module guardduty:
           let header = "| Id | Type | Severity | Title | Region |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(f):
-                      "| " + _aws_to_cell(f["Id"]) +
-                        " | " + _aws_to_cell(f["Type"]) +
-                        " | " + _aws_to_cell(f["Severity"]) +
-                        " | " + _aws_to_cell(f["Title"]) +
-                        " | " + _aws_to_cell(f["Region"]) + " |"
-                    end)
+              "| " + _aws_to_cell(f["Id"]) +
+                " | " + _aws_to_cell(f["Type"]) +
+                " | " + _aws_to_cell(f["Severity"]) +
+                " | " + _aws_to_cell(f["Title"]) +
+                " | " + _aws_to_cell(f["Region"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module backup:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract backup plans from a ListBackupPlans response.
   def backup_plans(response):
     if (is_none(response["BackupPlansList"])): [] else: response["BackupPlansList"]
@@ -3420,11 +3911,11 @@ module backup:
           let header = "| BackupPlanName | BackupPlanId | CreationDate | LastExecutionDate |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(p):
-                      "| " + _aws_to_cell(p["BackupPlanName"]) +
-                        " | " + _aws_to_cell(p["BackupPlanId"]) +
-                        " | " + _aws_to_cell(p["CreationDate"]) +
-                        " | " + _aws_to_cell(p["LastExecutionDate"]) + " |"
-                    end)
+              "| " + _aws_to_cell(p["BackupPlanName"]) +
+                " | " + _aws_to_cell(p["BackupPlanId"]) +
+                " | " + _aws_to_cell(p["CreationDate"]) +
+                " | " + _aws_to_cell(p["LastExecutionDate"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3459,20 +3950,32 @@ module backup:
           let header = "| BackupJobId | VaultName | State | ResourceArn | SizeBytes |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(j):
-                      "| " + _aws_to_cell(j["BackupJobId"]) +
-                        " | " + _aws_to_cell(j["BackupVaultName"]) +
-                        " | " + _aws_to_cell(j["State"]) +
-                        " | " + _aws_to_cell(j["ResourceArn"]) +
-                        " | " + _aws_to_cell(j["BackupSizeInBytes"]) + " |"
-                    end)
+              "| " + _aws_to_cell(j["BackupJobId"]) +
+                " | " + _aws_to_cell(j["BackupVaultName"]) +
+                " | " + _aws_to_cell(j["State"]) +
+                " | " + _aws_to_cell(j["ResourceArn"]) +
+                " | " + _aws_to_cell(j["BackupSizeInBytes"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module efs:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract file systems from a DescribeFileSystems response.
   def file_systems(response):
     if (is_none(response["FileSystems"])): [] else: response["FileSystems"]
@@ -3503,13 +4006,13 @@ module efs:
           let header = "| FileSystemId | Name | State | MountTargets | PerformanceMode | Encrypted |"
           | let sep = "| --- | --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(fs):
-                      "| " + _aws_to_cell(fs["FileSystemId"]) +
-                        " | " + _aws_to_cell(fs["Name"]) +
-                        " | " + _aws_to_cell(fs["LifeCycleState"]) +
-                        " | " + _aws_to_cell(fs["NumberOfMountTargets"]) +
-                        " | " + _aws_to_cell(fs["PerformanceMode"]) +
-                        " | " + _aws_to_cell(fs["Encrypted"]) + " |"
-                    end)
+              "| " + _aws_to_cell(fs["FileSystemId"]) +
+                " | " + _aws_to_cell(fs["Name"]) +
+                " | " + _aws_to_cell(fs["LifeCycleState"]) +
+                " | " + _aws_to_cell(fs["NumberOfMountTargets"]) +
+                " | " + _aws_to_cell(fs["PerformanceMode"]) +
+                " | " + _aws_to_cell(fs["Encrypted"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3534,20 +4037,32 @@ module efs:
           let header = "| MountTargetId | FileSystemId | SubnetId | State | IpAddress |"
           | let sep = "| --- | --- | --- | --- | --- |"
           | let rows = map(data, fn(mt):
-                      "| " + _aws_to_cell(mt["MountTargetId"]) +
-                        " | " + _aws_to_cell(mt["FileSystemId"]) +
-                        " | " + _aws_to_cell(mt["SubnetId"]) +
-                        " | " + _aws_to_cell(mt["LifeCycleState"]) +
-                        " | " + _aws_to_cell(mt["IpAddress"]) + " |"
-                    end)
+              "| " + _aws_to_cell(mt["MountTargetId"]) +
+                " | " + _aws_to_cell(mt["FileSystemId"]) +
+                " | " + _aws_to_cell(mt["SubnetId"]) +
+                " | " + _aws_to_cell(mt["LifeCycleState"]) +
+                " | " + _aws_to_cell(mt["IpAddress"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
 end
 
-|
-
 module sagemaker:
+  # Format a value as a Markdown table cell string.
+  def _aws_to_cell(value):
+    if (is_none(value)): ""
+    elif (is_bool(value)): to_string(value)
+    elif (is_array(value)): to_string(len(value)) + " items"
+    elif (is_dict(value)): "{...}"
+    else: to_string(value)
+  end
+
+  # Build a Markdown table from a header row string, separator string, and data rows.
+  def _aws_table(header, sep, rows):
+    join([header, sep] + rows, "\n")
+  end
+
   # Extract training jobs from a ListTrainingJobs response.
   def training_jobs(response):
     if (is_none(response["TrainingJobSummaries"])): [] else: response["TrainingJobSummaries"]
@@ -3578,11 +4093,11 @@ module sagemaker:
           let header = "| TrainingJobName | Status | CreationTime | LastModifiedTime |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(j):
-                      "| " + _aws_to_cell(j["TrainingJobName"]) +
-                        " | " + _aws_to_cell(j["TrainingJobStatus"]) +
-                        " | " + _aws_to_cell(j["CreationTime"]) +
-                        " | " + _aws_to_cell(j["LastModifiedTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(j["TrainingJobName"]) +
+                " | " + _aws_to_cell(j["TrainingJobStatus"]) +
+                " | " + _aws_to_cell(j["CreationTime"]) +
+                " | " + _aws_to_cell(j["LastModifiedTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3607,10 +4122,10 @@ module sagemaker:
           let header = "| ModelName | ModelArn | CreationTime |"
           | let sep = "| --- | --- | --- |"
           | let rows = map(data, fn(m):
-                      "| " + _aws_to_cell(m["ModelName"]) +
-                        " | " + _aws_to_cell(m["ModelArn"]) +
-                        " | " + _aws_to_cell(m["CreationTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(m["ModelName"]) +
+                " | " + _aws_to_cell(m["ModelArn"]) +
+                " | " + _aws_to_cell(m["CreationTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
@@ -3645,11 +4160,11 @@ module sagemaker:
           let header = "| EndpointName | Status | CreationTime | LastModifiedTime |"
           | let sep = "| --- | --- | --- | --- |"
           | let rows = map(data, fn(e):
-                      "| " + _aws_to_cell(e["EndpointName"]) +
-                        " | " + _aws_to_cell(e["EndpointStatus"]) +
-                        " | " + _aws_to_cell(e["CreationTime"]) +
-                        " | " + _aws_to_cell(e["LastModifiedTime"]) + " |"
-                    end)
+              "| " + _aws_to_cell(e["EndpointName"]) +
+                " | " + _aws_to_cell(e["EndpointStatus"]) +
+                " | " + _aws_to_cell(e["CreationTime"]) +
+                " | " + _aws_to_cell(e["LastModifiedTime"]) + " |"
+            end)
           | _aws_table(header, sep, rows)
         end
   end
